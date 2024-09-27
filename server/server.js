@@ -5,12 +5,11 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const session = require("express-session");
-const Conversation = require("./schemas/schema");
-const { text } = require("body-parser");
 const admin = require("firebase-admin");
-const serviceAccount = require("./project-404-dbd61-firebase-adminsdk-h4qwe-dad62b7d92.json");
 const passport = require("passport");
-const GitHubStrategy = require("passport-github2").Strategy;
+
+const Conversation = require("./schemas/schema");
+const githubStrategy = require("./passport-config/githubStrategy");
 
 dotenv.config({ path: "../.env" });
 
@@ -18,65 +17,40 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const serviceAccount = require("./project-404-dbd61-firebase-adminsdk-h4qwe-dad62b7d92.json");
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://project-404-dbd61.firebaseio.com",
 });
 
-// Verify Firebase token middleware
-async function verifyFirebaseToken(req, res, next) {
-  const token = req.headers.authorization?.split("Bearer ")[1]; // Extract the token from Authorization header
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+// Passport Strategies Configuration
+githubStrategy(passport);
 
-  try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    req.userId = decodedToken.uid; // Store the Firebase user ID in the request
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-}
-
-// Passport setup for GitHub OAuth
-passport.use(
-  new GitHubStrategy(
-    {
-      clientID: process.env.GITHUB_CLIENT_ID, // Add to .env file
-      clientSecret: process.env.GITHUB_CLIENT_SECRET, // Add to .env file
-      callbackURL: "http://localhost:5000/auth/github/callback", // Adjust for your environment
-    },
-    (accessToken, refreshToken, profile, done) => {
-      return done(null, profile); // Profile contains the authenticated GitHub user
-    }
-  )
-);
-
-// Serialize and deserialize user to support session persistence
+// Serialize and deserialize user
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
-// Middleware
+// Middleware for CORS and session handling
 app.use(
   cors({
-    origin: "http://localhost:5173", // Allow requests from Vite frontend
-    credentials: true, // Allow cookies to be sent with requests
+    origin: "http://localhost:5173",
+    credentials: true,
   })
 );
+
 app.use(express.json());
-// Middleware for sessions
+
 app.use(
   session({
-    secret: "your-secret-key", // You should use a strong secret for production
-    resave: false, // Avoid saving session if unmodified
-    saveUninitialized: true, // Save uninitialized sessions
-    cookie: { secure: false }, // Set to true in production with HTTPS
+    secret: "your-secret-key", // replace with your own secret key
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false },
   })
 );
-// Initialize Passport
 app.use(passport.initialize());
-app.use(passport.session()); // Add session middleware for login persistence
+app.use(passport.session());
 
 // MongoDB Connection
 mongoose
@@ -84,70 +58,139 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Failed to connect to MongoDB", err));
 
-// Basic route
-app.get("/", (req, res) => {
-  res.send("Server is up and running!");
-});
-
-// Define the /api/current_user route to check authentication
+// Route to return authenticated user data
 app.get("/api/current_user", (req, res) => {
   if (req.isAuthenticated()) {
-    res.json({ user: req.user }); // Send the authenticated user's data
+    res.json({ user: req.user });
   } else {
-    res.json({ user: null }); // No user is authenticated
+    res.json({ user: null });
   }
 });
 
-// Route to start GitHub OAuth login
-app.get("/auth/github", passport.authenticate("github", { scope: ["user:email"] }));
+// OAuth Login Routes
+app.get("/auth/github", passport.authenticate("github"));
 
-// Callback route for GitHub to redirect to after authentication
-app.get("/auth/github/callback", passport.authenticate("github", { failureRedirect: "/" }), async (req, res) => {
-  const anonymousId = req.userId; // Assume this was stored during Firebase anonymous session
-  const oauthId = req.user.id; // GitHub ID from Passport
+// OAuth Callback Routes
+app.get("/auth/github/callback", passport.authenticate("github", { failureRedirect: "/" }), (req, res) => {
+  res.redirect("http://localhost:5173/dashboard");
+});
 
-  // Find conversation by anonymous ID
-  const conversation = await Conversation.findOne({ userIds: anonymousId });
-  if (conversation) {
-    if (!conversation.userIds.includes(oauthId)) {
-      conversation.userIds.push(oauthId); // Add GitHub ID to the userIds array
-      await conversation.save();
+// Middleware to verify either Firebase or GitHub user
+async function verifyUser(req, res, next) {
+  // Check for Firebase Authorization token
+  const token = req.headers.authorization?.split("Bearer ")[1];
+
+  if (token) {
+    try {
+      // Verify Firebase Token
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      req.userId = decodedToken.uid;
+      return next();
+    } catch (err) {
+      console.error("Invalid Firebase token:", err);
     }
   }
 
-  // Successful login
-  res.redirect("http://localhost:5173/dashboard"); // Redirect user to your app
+  // If no Firebase token, check GitHub OAuth session
+  if (req.isAuthenticated() && req.user) {
+    req.userId = req.user.id; // Use GitHub User ID
+    return next();
+  }
+
+  return res.status(401).json({ error: "Unauthorized. No valid authentication found." });
+}
+
+app.post("/api/protected-route", verifyUser, (req, res) => {
+  res.json({ message: "Authenticated anonymously!", userId: req.userId });
 });
 
-app.post("/api/protected-route", verifyFirebaseToken, (req, res) => {
-  const userId = req.userId; // This is the Firebase Anonymous ID
-  res.json({ message: "Authenticated anonymously!", userId });
+// Create a New Conversation
+app.post("/api/conversations", verifyUser, async (req, res) => {
+  const { title } = req.body;
+  const newConversation = new Conversation({
+    userId: req.userId,
+    title: title || "Untitled Conversation",
+    messages: [],
+  });
+
+  try {
+    const savedConversation = await newConversation.save();
+    res.status(201).json(savedConversation);
+  } catch (error) {
+    res.status(500).json({ message: "Error creating conversation", error });
+  }
 });
 
-// WebSocket connection
+// Get All Conversations for a User
+app.get("/api/conversations", verifyUser, async (req, res) => {
+  try {
+    const conversations = await Conversation.find({ userId: req.userId });
+    res.status(200).json(conversations);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching conversations", error });
+  }
+});
+
+// Get a Single Conversation by ID
+app.get("/api/conversations/:id", verifyUser, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const conversation = await Conversation.findOne({ _id: id, userId: req.userId });
+    if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+    res.status(200).json(conversation);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching conversation", error });
+  }
+});
+
+// Add a Message to a Conversation
+app.post("/api/conversations/:id/messages", verifyUser, async (req, res) => {
+  const { id } = req.params;
+  const { text } = req.body;
+
+  if (!text) return res.status(400).json({ message: "Message text is required" });
+
+  try {
+    const conversation = await Conversation.findOne({ _id: id, userId: req.userId });
+    if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+
+    conversation.messages.push({ text });
+    await conversation.save();
+
+    res.status(201).json(conversation);
+  } catch (error) {
+    res.status(500).json({ message: "Error adding message to conversation", error });
+  }
+});
+
+// Delete/Archive a Conversation
+app.delete("/api/conversations/:id", verifyUser, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedConversation = await Conversation.findOneAndDelete({ _id: id, userId: req.userId });
+    if (!deletedConversation) return res.status(404).json({ message: "Conversation not found" });
+
+    res.status(200).json({ message: "Conversation deleted successfully", deletedConversation });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting conversation", error });
+  }
+});
+
+// WebSocket setup
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  // Listen for message from client
   socket.on("message", async ({ userId, message }) => {
-    console.log(`Message received from ${userId}: ${message}`);
-
-    //Find or create conversation by userId
-    let conversation = await Conversation.findOne({ userId: userId });
+    let conversation = await Conversation.findOne({ userIds: userId });
     if (!conversation) {
       conversation = new Conversation({ userIds: [userId], messages: [{ text: message }] });
     } else {
       conversation.messages.push({ text: message });
     }
 
-    // Save conversation to database
     await conversation.save();
-    console.log("Conversation updated or created successfully");
-
-    socket.emit("message", {
-      text: message,
-      timestamp: new Date(),
-    });
+    socket.emit("message", { text: message, timestamp: new Date() });
   });
 
   socket.on("disconnect", () => {
