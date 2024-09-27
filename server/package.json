@@ -11,6 +11,10 @@
     "dotenv",
     "body-parser"
   ],
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
   "dependencies": {
     "body-parser": "^1.20.3",
     "compression": "^1.7.4",
