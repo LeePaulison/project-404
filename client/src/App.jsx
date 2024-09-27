@@ -1,68 +1,84 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  Button,
+  Flex,
+  Heading,
+  HStack,
+  Link,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Text,
+} from "@chakra-ui/react";
+import useFirebaseAuth from "./hooks/useFirebaseAuth";  // Import the custom hook
 
 function App() {
-  const [user, setUser] = useState(null);
+  const { user, isLoggedIn, logout } = useFirebaseAuth();  // Use the custom hook for Firebase Auth
+  const { isOpen, onOpen, onClose } = useDisclosure();  // Chakra UI modal state
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    // Check if the user is logged in by calling the server
-    fetch("http://localhost:5000/api/current_user", {
-      method: "GET",
-      credentials: "include",  // Include cookies in the request
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.user) {
-          setUser(data.user);  // Set the authenticated user's data
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching user data:", error);
-      });
-  }, []);
-
+  // Handle GitHub OAuth login
   const handleGitHubLogin = () => {
-    window.location.href = "http://localhost:5000/auth/github";  // OAuth login
+    window.location.href = "http://localhost:5000/auth/github";  // Redirect to GitHub OAuth
   };
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={
-          <div>
-            <h1>Welcome to Project 404</h1>
-            {user ? (
-              <p>Logged in as: {user.username}</p>  // Show the user's username
-            ) : (
-              <div>
-                <p>Not logged in.</p>
-                <button onClick={handleGitHubLogin}>Login with GitHub</button>
-              </div>
-            )}
-          </div>
-        } />
+    <Box bg={'black'}>
+      {/* Header and Navigation */}
+      <Flex as="nav" bg="teal.500" p={4} justifyContent="space-between" alignItems="center">
+        <Heading as="h1" size="lg" color="white">
+          Project 404
+        </Heading>
+        <HStack spacing={4}>
+          <Link href="/" color="white">Home</Link>
+          {isLoggedIn ? (
+            <>
+              <Button colorScheme="red" onClick={logout}>Logout</Button>  {/* Logout Button */}
+            </>
+          ) : (
+            <Link href="#" color="white" onClick={onOpen}>Login</Link>
+          )}
+        </HStack>
+      </Flex>
 
-        <Route path="/dashboard" element={<Dashboard user={user} />} />
-      </Routes>
-    </Router>
+      {/* Main Content */}
+      <Box p={6}>
+        <Heading>Welcome to Project 404</Heading>
+        {isLoggedIn ? (
+          <Box mt={4}>
+            <Text>Logged in as: {user.email || user.uid}</Text>
+            <Button mt={2} onClick={() => navigate("/dashboard")} colorScheme="teal">
+              Go to Dashboard
+            </Button>
+          </Box>
+        ) : (
+          <Text mt={4}>Please log in using the options above.</Text>
+        )}
+      </Box>
+
+      {/* Chakra UI Modal Dialog for GitHub OAuth */}
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Login</ModalHeader>
+          <ModalBody>
+            <Text>Choose your login method:</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="teal" mr={3} onClick={handleGitHubLogin}>
+              Login with GitHub
+            </Button>
+            <Button onClick={onClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
   );
 }
-
-// Basic Dashboard component
-const Dashboard = ({ user }) => {
-  if (!user) {
-    return <p>Loading...</p>;  // Handle cases where the user isn't yet fetched
-  }
-
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Welcome, {user.username}!</p>  {/* Display GitHub user's username */}
-    </div>
-  );
-};
 
 export default App;
