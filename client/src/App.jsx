@@ -1,35 +1,68 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Check if the user is logged in by calling the server
+    fetch("http://localhost:5000/api/current_user", {
+      method: "GET",
+      credentials: "include",  // Include cookies in the request
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.user) {
+          setUser(data.user);  // Set the authenticated user's data
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching user data:", error);
+      });
+  }, []);
+
+  const handleGitHubLogin = () => {
+    window.location.href = "http://localhost:5000/auth/github";  // OAuth login
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={
+          <div>
+            <h1>Welcome to Project 404</h1>
+            {user ? (
+              <p>Logged in as: {user.username}</p>  // Show the user's username
+            ) : (
+              <div>
+                <p>Not logged in.</p>
+                <button onClick={handleGitHubLogin}>Login with GitHub</button>
+              </div>
+            )}
+          </div>
+        } />
+
+        <Route path="/dashboard" element={<Dashboard user={user} />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+// Basic Dashboard component
+const Dashboard = ({ user }) => {
+  if (!user) {
+    return <p>Loading...</p>;  // Handle cases where the user isn't yet fetched
+  }
+
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <p>Welcome, {user.username}!</p>  {/* Display GitHub user's username */}
+    </div>
+  );
+};
+
+export default App;
