@@ -1,2 +1,5 @@
 /client/node_modules
 /server/node_modules
+
+.env
+/server/project-404-dbd61-firebase-adminsdk-h4qwe-dad62b7d92.json
