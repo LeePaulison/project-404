@@ -7,6 +7,7 @@ const { Server } = require("socket.io");
 const session = require("express-session");
 const admin = require("firebase-admin");
 const passport = require("passport");
+const OpenAI = require("openai");
 
 const Conversation = require("./schemas/schema");
 const githubStrategy = require("./passport-config/githubStrategy");
@@ -45,12 +46,17 @@ app.use(
   session({
     secret: "your-secret-key", // replace with your own secret key
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false },
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 60000 }, // 10 minutes
   })
 );
 app.use(passport.initialize());
 app.use(passport.session());
+
+// OpenAI API Configuration
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // MongoDB Connection
 mongoose
@@ -72,7 +78,7 @@ app.get("/auth/github", passport.authenticate("github"));
 
 // OAuth Callback Routes
 app.get("/auth/github/callback", passport.authenticate("github", { failureRedirect: "/" }), (req, res) => {
-  res.redirect("http://localhost:5173/dashboard");
+  res.redirect("http://localhost:5173");
 });
 
 // Middleware to verify either Firebase or GitHub user
@@ -175,6 +181,49 @@ app.delete("/api/conversations/:id", verifyUser, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Error deleting conversation", error });
   }
+});
+
+app.post("/api/conversations/:id/ask", verifyUser, async (req, res) => {
+  const { id } = req.params;
+  const { query } = req.body;
+
+  if (!query) {
+    return res.status(400).json({ message: "Query text is required" });
+  }
+
+  try {
+    // Find the conversation to add the response
+    const conversation = await Conversation.findOne({ _id: id, userId: req.userId });
+    if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+
+    // Call the OpenAI API with the user query
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // or use "gpt-4o" for completions endpoint
+      messages: [{ role: "user", content: query }],
+    });
+
+    const aiResponse = response.choices[0].message.content;
+
+    // Add both the user query and OpenAI response to the conversation
+    conversation.messages.push({ text: `User: ${query}` });
+    conversation.messages.push({ text: `AI: ${aiResponse}` });
+
+    await conversation.save();
+
+    res.status(201).json({ conversation });
+  } catch (error) {
+    console.error("Error with OpenAI request:", error);
+    res.status(500).json({ message: "Error processing OpenAI request", error });
+  }
+});
+
+// Add this route to `server.js` for handling logout
+app.get("/api/auth/logout", (req, res) => {
+  req.logout((err) => {
+    if (err) return res.status(500).json({ message: "Error during logout", err });
+    res.clearCookie("connect.sid"); // Clear the session cookie
+    res.json({ message: "Logged out successfully" });
+  });
 });
 
 // WebSocket setup
