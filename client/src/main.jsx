@@ -1,10 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import AuthProvider from "./auth/AuthProvider";  // Firebase Auth wrapper
+import { ChakraProvider } from "@chakra-ui/react";
+import theme from "./theme"; // Chakra UI theme
+// Pages
 import App from "./App";  // Home component
 import Dashboard from "./pages/Dashboard";  // Dashboard component
-import AuthProvider from "./auth/AuthProvider";  // Firebase Auth wrapper
-
 // Define the routes and loaders
 const router = createBrowserRouter([
   {
@@ -24,7 +26,9 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <AuthProvider>
-      <RouterProvider router={router} />
+      <ChakraProvider theme={theme}>
+        <RouterProvider router={router} />
+      </ChakraProvider>
     </AuthProvider>
   </React.StrictMode>
 );

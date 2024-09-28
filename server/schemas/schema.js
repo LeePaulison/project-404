@@ -1,26 +1,21 @@
 const mongoose = require("mongoose");
-const { v4: uuidv4 } = require("uuid");
+const { v4: uuidv4 } = require("uuid"); // Import UUID for unique IDs
 
-// Define a schema for a single message in the conversation
 const messageSchema = new mongoose.Schema({
   text: { type: String, required: true },
   timestamp: { type: Date, default: Date.now, required: true },
 });
 
-// Define a schema for the Conversation collection
 const conversationSchema = new mongoose.Schema(
   {
-    conversationId: { type: String, default: uuidv4, unique: true },
-    userId: { type: String, required: true }, // Main user ID
-    associatedIds: [{ type: String }], // Additional IDs for OAuth/Anonymous users
+    _id: { type: String, default: uuidv4 }, // Use UUID as the primary ID
+    userId: [{ type: String, required: true }],
     messages: [messageSchema],
-    title: { type: String, default: "Untitled Conversation" }, // Metadata for easy identification
-    status: { type: String, enum: ["active", "archived", "completed"], default: "active" },
+    title: { type: String, default: "Untitled Conversation" },
   },
   { timestamps: true }
 );
 
-// Create a Mongoose model for the Conversation collection
 const Conversation = mongoose.model("Conversation", conversationSchema);
 
 module.exports = Conversation;
