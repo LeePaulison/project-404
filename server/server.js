@@ -47,7 +47,7 @@ app.use(
     secret: "your-secret-key", // replace with your own secret key
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false, maxAge: 60000 }, // 10 minutes
+    cookie: { secure: false, maxAge: 360000 }, // 1 hour
   })
 );
 app.use(passport.initialize());
@@ -67,6 +67,8 @@ mongoose
 // Route to return authenticated user data
 app.get("/api/current_user", (req, res) => {
   if (req.isAuthenticated()) {
+    console.log("API /current_user called. Authenticated:", req.isAuthenticated());
+    console.log("User data in request:", req.user);
     res.json({ user: req.user });
   } else {
     res.json({ user: null });
@@ -110,20 +112,63 @@ app.post("/api/protected-route", verifyUser, (req, res) => {
   res.json({ message: "Authenticated anonymously!", userId: req.userId });
 });
 
-// Create a New Conversation
-app.post("/api/conversations", verifyUser, async (req, res) => {
-  const { title } = req.body;
-  const newConversation = new Conversation({
-    userId: req.userId,
-    title: title || "Untitled Conversation",
-    messages: [],
-  });
-
+// Create or fetch an active conversation for a user
+app.post("/api/conversations", async (req, res) => {
   try {
-    const savedConversation = await newConversation.save();
-    res.status(201).json(savedConversation);
+    const { title, userId } = req.body;
+
+    if (!title || !userId) {
+      return res.status(400).json({ message: "Title and User ID are required" });
+    }
+
+    // Check if a conversation already exists for this user
+    let conversation = await Conversation.findOne({ userId: { $in: [userId] } });
+
+    if (!conversation) {
+      // Create a new conversation if none exists
+      conversation = new Conversation({
+        title: title || "Untitled Conversation",
+        userId: [userId],
+        messages: [],
+      });
+
+      const savedConversation = await conversation.save();
+      return res.status(201).json(savedConversation);
+    }
+
+    // If a conversation exists, return it
+    res.status(200).json(conversation);
   } catch (error) {
-    res.status(500).json({ message: "Error creating conversation", error });
+    console.error("Error fetching or creating conversation:", error);
+    res.status(500).json({ message: "Failed to fetch or create a new conversation", error });
+  }
+});
+
+app.put("/api/conversations/:conversationId/addUser", async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { newUserId } = req.body;
+
+    if (!conversationId || !newUserId) {
+      return res.status(400).json({ message: "Conversation ID and New User ID are required" });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    // Add the new user ID if it doesn't already exist in the array
+    if (!conversation.userId.includes(newUserId)) {
+      conversation.userId.push(newUserId);
+      await conversation.save();
+    }
+
+    res.status(200).json(conversation);
+  } catch (error) {
+    console.error("Error adding new user ID to conversation:", error);
+    res.status(500).json({ message: "Failed to add user to conversation", error });
   }
 });
 

@@ -1,4 +1,4 @@
-const GitHubStrategy = require("passport-github2").Strategy;
+const GitHubStrategy = require("passport-github").Strategy;
 
 function githubStrategy(passport) {
   passport.use(

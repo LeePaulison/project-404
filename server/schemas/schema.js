@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
-const { v4: uuidv4 } = require("uuid"); // Import UUID for unique IDs
+const { Schema, Types } = mongoose;
 
-const messageSchema = new mongoose.Schema({
+const messageSchema = new Schema({
   text: { type: String, required: true },
   timestamp: { type: Date, default: Date.now, required: true },
 });
 
-const conversationSchema = new mongoose.Schema(
+const conversationSchema = new Schema(
   {
-    _id: { type: String, default: uuidv4 }, // Use UUID as the primary ID
-    userId: [{ type: String, required: true }],
+    _id: { type: Schema.Types.ObjectId, default: () => new Types.ObjectId() },
+    userId: [{ type: String, required: true }], // Store both Firebase and GitHub user IDs as strings
     messages: [messageSchema],
     title: { type: String, default: "Untitled Conversation" },
   },
