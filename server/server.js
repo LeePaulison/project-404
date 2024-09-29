@@ -9,7 +9,8 @@ const admin = require("firebase-admin");
 const passport = require("passport");
 const OpenAI = require("openai");
 
-const Conversation = require("./schemas/schema");
+const Conversation = require("./schemas/conversation");
+const User = require("./schemas/user");
 const githubStrategy = require("./passport-config/githubStrategy");
 
 dotenv.config({ path: "../.env" });
@@ -63,6 +64,78 @@ mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Failed to connect to MongoDB", err));
+
+// Create or link a user account
+app.post("/api/create_account", async (req, res) => {
+  const { firebaseUserId, githubUserId } = req.body;
+
+  try {
+    // Check if a user already exists with either Firebase or GitHub ID
+    let user = await User.findOne({
+      $or: [{ firebaseUserId }, { githubUserId }],
+    });
+
+    if (user) {
+      // If the user exists, update it with the new login method
+      if (firebaseUserId && !user.firebaseUserId) {
+        user.firebaseUserId = firebaseUserId;
+      }
+      if (githubUserId && !user.githubUserId) {
+        user.githubUserId = githubUserId;
+      }
+      await user.save();
+      return res.status(200).json({ message: "User account updated", user });
+    }
+
+    // If no user exists, create a new one
+    user = new User({
+      firebaseUserId,
+      githubUserId,
+    });
+
+    const savedUser = await user.save();
+    res.status(201).json({ message: "User account created", user: savedUser });
+  } catch (error) {
+    console.error("Error creating or linking account:", error);
+    res.status(500).json({ message: "Failed to create or link user account", error });
+  }
+});
+
+// Route to link GitHub ID to a Firebase Anonymous ID
+app.post("/api/link_account", async (req, res) => {
+  const { firebaseUserId, githubUserId } = req.body;
+
+  if (!firebaseUserId || !githubUserId) {
+    return res.status(400).json({ message: "Both Firebase UID and GitHub ID are required to link accounts." });
+  }
+
+  try {
+    // Check if a user with either Firebase or GitHub ID already exists
+    let user = await User.findOne({
+      $or: [{ firebaseUserId }, { githubUserId }],
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "No user found for either ID. Please create an account first." });
+    }
+
+    // If user is found, add missing IDs
+    if (user.firebaseUserId !== firebaseUserId) {
+      user.firebaseUserId = firebaseUserId;
+    }
+    if (user.githubUserId !== githubUserId) {
+      user.githubUserId = githubUserId;
+    }
+
+    // Save the updated user
+    await user.save();
+
+    return res.status(200).json({ message: "Account successfully linked", user });
+  } catch (error) {
+    console.error("Error linking accounts:", error);
+    return res.status(500).json({ message: "Failed to link accounts", error });
+  }
+});
 
 // Route to return authenticated user data
 app.get("/api/current_user", (req, res) => {
