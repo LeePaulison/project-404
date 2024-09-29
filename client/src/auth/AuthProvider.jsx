@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import { signInAnonymously, signOut, onAuthStateChanged } from "firebase/auth";
+import { signInAnonymously, signOut } from "firebase/auth";
 import { auth } from "../firebase";
 
 export const AuthContext = createContext();
@@ -13,6 +13,8 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true); // Manage loading state
   const [githubSession, setGithubSession] = useState(false); // Manage GitHub session separately
+
+  console.log("AuthProvider mounted");
 
   // Check for existing GitHub session on initial load
   useEffect(() => {
@@ -29,29 +31,31 @@ const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error("Error fetching GitHub session:", error);
+        console.log("Error in AuthProvider:", error.message);
+        console.log("Stack Trace:", error.stack);
+
         setUser(null);
       } finally {
         setAuthLoading(false); // Set loading to false after session check
       }
+
+      console.log("Current Auth State:", user);
     };
 
     checkSession();
   }, []);
 
-  // Firebase Auth Handling for Anonymous Users
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log("Firebase Auth State Changed:", user);
-      // If a GitHub session is active, avoid overwriting with Firebase anonymous user
-      if (user && !user.isAnonymous && !githubSession) {
-        setUser(user);
-      } else if (!user && !githubSession) {
-        setUser(null); // Only set to null if neither GitHub nor Firebase is active
-      }
-    });
 
-    return () => unsubscribe();
-  }, [githubSession]); // Include githubSession in dependency array
+  const handleAnonSignIn = async () => {
+    try {
+      const userCredential = await signInAnonymously(auth);
+      console.log("Successfully signed in anonymously:", userCredential.user);
+      setUser(userCredential.user); // Update the AuthProvider state
+    } catch (error) {
+      console.error("Error during Anonymous Sign-In:", error);
+    }
+  };
+
 
   // GitHub Login Handler
   const loginWithGitHub = () => {
@@ -72,7 +76,7 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginWithGitHub, logout, authLoading }}>
+    <AuthContext.Provider value={{ user, loginWithGitHub, handleAnonSignIn, logout, authLoading }}>
       {children}
     </AuthContext.Provider>
   );

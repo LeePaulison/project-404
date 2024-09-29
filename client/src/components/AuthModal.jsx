@@ -1,63 +1,68 @@
 // src/components/AuthModal.jsx
-import React from "react";
 import {
+  Box,
+  Avatar,
   Modal,
   ModalOverlay,
   ModalContent,
   ModalHeader,
   ModalFooter,
   ModalBody,
-  ModalCloseButton,
   Button,
-  useDisclosure,
-  VStack,
   Text,
 } from "@chakra-ui/react";
-import GitHubAuthButton from "./GitHubAuthButton";
 
-const AuthModal = ({ user, onLoginGitHub, onLoginFirebase, onLogout }) => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+const AuthModal = ({ user, onLoginGitHub, onLoginFirebase, onLogout, showModal, setShowModal }) => {
 
   return (
     <>
       {/* Login Button in the Nav Bar */}
-      <Button onClick={onOpen} colorScheme="blue" variant="outline" mr={4}>
-        {user ? "Account" : "Login"}
-      </Button>
-
+      {
+        user ? (
+          <Button onClick={onLogout} colorScheme="red" variant="outline" mr={4}>
+            Logout
+          </Button>
+        ) : (
+          <Button onClick={() => setShowModal(true)} colorScheme="blue" variant="outline" mr={4}>
+            Sign In
+          </Button>
+        )
+      }
       {/* Modal for Authentication Options */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{user ? "Manage Account" : "Login Options"}</ModalHeader>
-          <ModalCloseButton />
+          <ModalHeader>{user ? "Account Information" : "Sign In"}</ModalHeader>
           <ModalBody>
-            <VStack spacing={4}>
-              {user ? (
-                <Text>Welcome, {user.displayName || "User"}!</Text>
-              ) : (
-                <>
-                  {/* GitHub Login Button */}
-                  <GitHubAuthButton
-                    onLogin={onLoginGitHub}
-                    onLogout={onLogout}
-                    user={user}
-                  />
-
-                  {/* Firebase Login Button */}
-                  <Button onClick={onLoginFirebase} colorScheme="orange" w="full">
-                    Login with Firebase
-                  </Button>
-                </>
-              )}
-            </VStack>
+            {user ? (
+              <Box textAlign="center">
+                <Avatar src={user.photos && user.photos[0].value || ""} size="xl" mb={4} />
+                <Text fontSize="lg">{user.isAnonymous ? "Guest User" : user.displayName || "GitHub User"}</Text>
+                <Button mt={4} colorScheme="red" onClick={onLogout}>
+                  Logout
+                </Button>
+              </Box>
+            ) : (
+              <Box textAlign="center">
+                <Button colorScheme="teal" mb={4} onClick={() => {
+                  setShowModal(false);
+                  onLoginGitHub();
+                }}>
+                  Sign In with GitHub
+                </Button>
+                <Text>or</Text>
+                <Button colorScheme="blue" mt={4} onClick={() => {
+                  setShowModal(false);
+                  onLoginFirebase();
+                }}>
+                  Sign In as Guest
+                </Button>
+                {console.log(`showModal on button click: ${showModal}`)}
+              </Box>
+            )}
           </ModalBody>
-
           <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={onLogout}>
-              Logout
-            </Button>
-            <Button variant="ghost" onClick={onClose}>
+            <Button variant="ghost" onClick={() => setShowModal(false)}>
               Close
             </Button>
           </ModalFooter>

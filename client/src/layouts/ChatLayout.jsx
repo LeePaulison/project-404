@@ -1,12 +1,29 @@
-// src/layouts/ChatLayout.jsx
-import React from "react";
+import React, { useState } from "react";
 import { Box, Flex, Heading, VStack, Button, HStack } from "@chakra-ui/react";
+import QueryInput from "../components/QueryInput";
 
-const ChatLayout = ({ conversations, messages, onSelectConversation, onLogout }) => {
+const ChatLayout = ({ conversations, onSelectConversation, createNewConversation }) => {
+  const [messages, setMessages] = useState([
+    { text: "Hello, how can I assist you?", isUser: false },
+  ]);
+
+  // Handler to send a query and update the chat messages
+  const handleSendQuery = (query) => {
+    // Append the user's message
+    const userMessage = { text: query, isUser: true };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Simulate AI response
+    setTimeout(() => {
+      const aiMessage = { text: `You asked: "${query}"`, isUser: false };
+      setMessages((prev) => [...prev, aiMessage]);
+    }, 500); // Simulated delay
+  };
+
   return (
-    <Flex h="100vh">
+    <Flex flex={1}>
       {/* Sidebar for Conversations */}
-      <Box bg="gray.900" color="white" w="300px" h="100vh" p={4}>
+      <Box bg="gray.900" color="white" maxW="300px" flex={1} p={4}>
         <Heading size="md" mb={4}>
           Conversations
         </Heading>
@@ -22,7 +39,7 @@ const ChatLayout = ({ conversations, messages, onSelectConversation, onLogout })
             {conv.title || `Conversation ${index + 1}`}
           </Button>
         ))}
-        <Button w="100%" mt={4} colorScheme="blue">
+        <Button onClick={createNewConversation} w="100%" mt={4} colorScheme="blue">
           + New Conversation
         </Button>
       </Box>
@@ -40,11 +57,10 @@ const ChatLayout = ({ conversations, messages, onSelectConversation, onLogout })
             </HStack>
           </Box>
         ))}
-
-        {/* Logout Button */}
-        <Button onClick={onLogout} colorScheme="red" alignSelf="center">
-          Logout
-        </Button>
+        {/* Include the QueryInput component */}
+        <Box w="100%" position="sticky" bottom={0}>
+          <QueryInput onSend={handleSendQuery} />
+        </Box>
       </VStack>
     </Flex>
   );
