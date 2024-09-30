@@ -8,7 +8,8 @@ function githubStrategy(passport) {
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
         callbackURL: "http://localhost:5000/auth/github/callback",
       },
-      (accessToken, refreshToken, profile, done) => {
+      async (accessToken, refreshToken, profile, done) => {
+        console.log("GitHub Profile:", profile);
         return done(null, profile); // Profile contains the authenticated GitHub user
       }
     )
