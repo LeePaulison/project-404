@@ -2,6 +2,7 @@
 import React from "react";
 import { Flex, Heading, Spacer, Button, useDisclosure } from "@chakra-ui/react";
 import AuthModal from "./AuthModal"; // Import the AuthModal component
+import LinkGitHubButton from "./LinkGitHubButton"; // Import the LinkGitHubButton component
 
 const NavBar = ({ user, onLoginGitHub, onLoginFirebase, onLogout }) => {
   const [showModal, setShowModal] = React.useState(false);
@@ -13,9 +14,14 @@ const NavBar = ({ user, onLoginGitHub, onLoginFirebase, onLogout }) => {
       {/* Include AuthModal in the NavBar */}
       <nav>
         {user && (
-          <Button onClick={() => setShowModal(true)} colorScheme="blue" variant="outline" mr={4}>
-            {user && user.isAnonymous ? "Guest Account" : "Account"}
-          </Button>
+          <>
+            {user.isAnonymous &&
+              <LinkGitHubButton />
+            }
+            <Button onClick={() => setShowModal(true)} colorScheme="blue" variant="outline">
+              {user && user.isAnonymous ? "Guest Account" : "Account"}
+            </Button>
+          </>
         )
         }
         <AuthModal user={user} onLoginGitHub={onLoginGitHub} onLoginFirebase={onLoginFirebase} onLogout={onLogout} showModal={showModal} setShowModal={setShowModal} />

@@ -13,18 +13,18 @@ function App() {
   const [selectedConversationId, setSelectedConversationId] = useState(null);
 
   // Fetch conversations when the component mounts
-  useEffect(() => {
-    const loadConversations = async () => {
-      try {
-        const data = await fetchConversations();
-        setConversations(data);
-      } catch (error) {
-        console.error("Failed to load conversations:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const loadConversations = async () => {
+  //     try {
+  //       const data = await fetchConversations();
+  //       setConversations(data);
+  //     } catch (error) {
+  //       console.error("Failed to load conversations:", error);
+  //     }
+  //   };
 
-    loadConversations();
-  }, []);
+  //   loadConversations();
+  // }, []);
 
   // Handle conversation selection and load messages
   const handleSelectConversation = async (conversationId) => {

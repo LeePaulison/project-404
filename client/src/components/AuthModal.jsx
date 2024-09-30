@@ -1,6 +1,7 @@
 // src/components/AuthModal.jsx
 import {
   Box,
+  Center,
   Avatar,
   Modal,
   ModalOverlay,
@@ -10,7 +11,9 @@ import {
   ModalBody,
   Button,
   Text,
+  Flex,
 } from "@chakra-ui/react";
+import LinkGitHubButton from "./LinkGitHubButton";
 
 const AuthModal = ({ user, onLoginGitHub, onLoginFirebase, onLogout, showModal, setShowModal }) => {
 
@@ -38,9 +41,14 @@ const AuthModal = ({ user, onLoginGitHub, onLoginFirebase, onLogout, showModal, 
               <Box textAlign="center">
                 <Avatar src={user.photos && user.photos[0].value || ""} size="xl" mb={4} />
                 <Text fontSize="lg">{user.isAnonymous ? "Guest User" : user.displayName || "GitHub User"}</Text>
-                <Button mt={4} colorScheme="red" onClick={onLogout}>
-                  Logout
-                </Button>
+                <Center>
+                  <Flex direction="column" justifyContent="center" my={4} >
+                    {user.isAnonymous && <LinkGitHubButton />}
+                    <Button mt={4} colorScheme="red" onClick={onLogout}>
+                      Logout
+                    </Button>
+                  </Flex>
+                </Center>
               </Box>
             ) : (
               <Box textAlign="center">
