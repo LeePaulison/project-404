@@ -14,8 +14,6 @@ const AuthProvider = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
   const [githubSession, setGithubSession] = useState(false);
 
-  console.log("AuthProvider mounted");
-
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -42,8 +40,6 @@ const AuthProvider = ({ children }) => {
 
   // Function to create JWT tokens via /api/create_token
   const createToken = async (firebaseUserId, githubUserId = null) => {
-    console.log("Creating JWT tokens for Firebase User ID:", firebaseUserId);
-    console.log("Creating JWT tokens for GitHub User ID:", githubUserId);
     try {
       const response = await axios.post(
         "http://localhost:5000/api/create_token",
