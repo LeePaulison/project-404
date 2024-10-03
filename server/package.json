@@ -16,6 +16,7 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "axios": "^1.7.7",
     "body-parser": "^1.20.3",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
@@ -36,5 +37,6 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
-  }
+  },
+  "packageManager": "yarn@4.5.0+sha512.837566d24eec14ec0f5f1411adb544e892b3454255e61fdef8fd05f3429480102806bac7446bc9daff3896b01ae4b62d00096c7e989f1596f2af10b927532f39"
 }
