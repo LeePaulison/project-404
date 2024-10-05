@@ -1,23 +1,55 @@
-const Conversation = require("../schemas/conversation");
+const Conversation = require('../models/Conversation');
 
-// Get Conversations
-exports.getConversations = async (req, res) => {
-  const conversations = await Conversation.find({ userId: req.userId });
-  res.status(200).json(conversations);
-};
-
-// Create Conversation
+// Create a new conversation
 exports.createConversation = async (req, res) => {
-  const { title, messages } = req.body;
-  const newConversation = new Conversation({ userId: req.userId, title, messages });
-  await newConversation.save();
-  res.status(201).json(newConversation);
+  try {
+    const conversation = new Conversation(req.body);
+    await conversation.save();
+    res.status(201).json(conversation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create conversation' });
+  }
 };
 
-// Update Conversation
+// Get all conversations for a user
+exports.getConversations = async (req, res) => {
+  try {
+    const conversations = await Conversation.find({ userId: req.params.userId });
+    res.json(conversations);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve conversations' });
+  }
+};
+
+// Get a specific conversation by ID
+exports.getConversation = async (req, res) => {
+  try {
+    const conversation = await Conversation.findById(req.params.conversationId);
+    if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+    res.json(conversation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve conversation' });
+  }
+};
+
+// Update conversation by ID
 exports.updateConversation = async (req, res) => {
-  const { title, messages } = req.body;
-  const updatedConversation = await Conversation.findByIdAndUpdate(req.params.id, { title, messages }, { new: true });
-  if (!updatedConversation) return res.status(404).json({ error: "Conversation not found" });
-  res.status(200).json(updatedConversation);
+  try {
+    const conversation = await Conversation.findByIdAndUpdate(req.params.conversationId, req.body, { new: true });
+    if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+    res.json(conversation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update conversation' });
+  }
+};
+
+// Delete conversation by ID
+exports.deleteConversation = async (req, res) => {
+  try {
+    const conversation = await Conversation.findByIdAndDelete(req.params.conversationId);
+    if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
+    res.json({ message: 'Conversation deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete conversation' });
+  }
 };
