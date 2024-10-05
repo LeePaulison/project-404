@@ -3,10 +3,34 @@ const Conversation = require('../models/Conversation');
 // Create a new conversation
 exports.createConversation = async (req, res) => {
   try {
-    const conversation = new Conversation(req.body);
+    console.log('Request Body:', req.body); // Log the request body
+    const { userId, conversationTitle, messages } = req.body;
+
+    // Check if a conversation with the same title already exists for this user
+    const existingConversation = await Conversation.findOne({
+      userId: userId,
+      conversationTitle: conversationTitle
+    });
+
+    if (existingConversation) {
+      return res.status(400).json({ error: 'Conversation with this title already exists for this user' });
+    }
+
+    // Log the number of existing conversations
+    const existingCount = await Conversation.countDocuments();
+    console.log(`Number of existing conversations: ${existingCount}`);
+
+    // Create a new conversation if no duplicate is found
+    const conversation = new Conversation({
+      userId,
+      conversationTitle,
+      messages
+    });
+
     await conversation.save();
     res.status(201).json(conversation);
   } catch (error) {
+    console.error('Error creating conversation:', error);
     res.status(500).json({ error: 'Failed to create conversation' });
   }
 };
