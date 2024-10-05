@@ -1,5 +1,19 @@
 /client/node_modules
 /server/node_modules
 
+/server/.yarn/*
+!/server/.yarn/patches
+!/server/.yarn/plugins
+!/server/.yarn/releases
+!/server/.yarn/sdks
+!/server/.yarn/versions
+
+# Swap the comments on the following lines if you wish to use zero-installs
+# In that case, don't forget to run `yarn config set enableGlobalCache false`!
+# Documentation here: https://yarnpkg.com/features/caching#zero-installs
+
+#!.yarn/cache
+.pnp.*
+
 .env
 /server/project-404-dbd61-firebase-adminsdk-h4qwe-dad62b7d92.json
