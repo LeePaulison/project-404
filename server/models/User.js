@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 // Define the User Schema
 const userSchema = new Schema({
-  firebaseUIDs: { type: [String], required: true }, // Array of linked Firebase UIDs
+  firebaseUIDs: { type: [String], required: true, unique: true }, // Array of linked Firebase UIDs
   email: { type: String, index: true, sparse: true }, // Index for quick lookups on email
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

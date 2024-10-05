@@ -10,7 +10,7 @@ const messageSchema = new Schema({
 
 // Define the Conversation Schema
 const conversationSchema = new Schema({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true }, // Reference to User collection
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true }, // Reference to User collection
   conversationTitle: { type: String, default: "Untitled Conversation" },
   messages: [messageSchema], // Array of messages in this conversation
   tags: { type: [String], default: [] }, // Optional tags for categorizing conversations
