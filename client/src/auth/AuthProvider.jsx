@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
-import { signInAnonymously, signOut } from "firebase/auth";
-import { auth } from "../firebase";
+import { signInAnonymously, signOut, signInWithPopup, linkWithPopup, onAuthStateChanged } from "firebase/auth";
+import { auth, googleProvider } from "../firebase";
 
+// Create Auth Context
 export const AuthContext = createContext();
 
 export function useAuth() {
@@ -12,102 +12,70 @@ export function useAuth() {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [githubSession, setGithubSession] = useState(false);
 
   useEffect(() => {
+    let unsubscribe;
     const initializeAuth = async () => {
       try {
-        // Trigger Firebase Anonymous Auth
-        console.log("No session found. Signing in anonymously...");
-        const userCredential = await signInAnonymously(auth);
+        unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+          setUser(currentUser);
+          setAuthLoading(false);
+        });
 
-        // Set the Firebase anonymous user and generate JWT tokens
-        setUser(userCredential.user);
-        console.log("Firebase Anonymous User:", userCredential.user);
-
-        // Create user entry in MongoDB and generate JWT tokens
-        await createToken(userCredential.user.uid);
+        // Check if a user is already logged in
+        if (auth.currentUser === null) {
+          await signInAnonymously(auth); // Sign in anonymously
+        }
       } catch (error) {
-        console.error("Error during Firebase anonymous login:", error);
+        console.error("Error initializing authentication:", error);
         setUser(null);
-      } finally {
         setAuthLoading(false);
       }
     };
 
     initializeAuth();
+
+    // Cleanup function to unsubscribe from the auth state listener
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
-  // Function to create JWT tokens via /api/create_token
-  const createToken = async (firebaseUserId, githubUserId = null) => {
+  // Function to link Google Account to Anonymous Account
+  const linkGoogleAccount = async () => {
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/create_token",
-        { firebaseUserId, githubUserId },
-        { withCredentials: true } // Include cookies in the request
-      );
-      console.log("JWT tokens generated and stored in cookies:", response.data.message);
-    } catch (error) {
-      console.error("Error creating JWT tokens:", error);
-    }
-  };
-  // Function to link GitHub Account to the Firebase Anonymous session
-  // Function to link GitHub Account to the existing Firebase Anonymous session
-  const linkGitHubAccount = async () => {
-    if (!user || !user.uid) return;
+      setAuthLoading(true);
+      if (user && user.isAnonymous) {
+        await linkWithPopup(user, googleProvider); // Link Google to Anonymous
+      } else {
+        await signInWithPopup(auth, googleProvider); // Directly sign in with Google
+      }
 
-    try {
-      localStorage.setItem("firebaseUserId", user.uid); // Store Firebase UID temporarily for callback
-      console.log("Redirecting to GitHub OAuth...");
-      window.open("http://localhost:5000/auth/github", "_self"); // Redirect to GitHub OAuth
+      console.log("Google Account Linked Successfully");
     } catch (error) {
-      console.error("Error during GitHub linking:", error);
+      console.error("Error linking Google Account:", error.message);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
-  // GitHub Login Handler
-  const loginWithGitHub = () => {
-    window.open("http://localhost:5000/auth/github", "_self"); // Triggers GitHub OAuth server-side
-  };
-
-  // GitHub Logout Handler
   const logout = async () => {
     try {
-      await axios.get("http://localhost:5000/api/auth/logout", { withCredentials: true });
-      await signOut(auth); // Sign out of Firebase as well if using dual auth
+      setAuthLoading(true);
+      await signOut(auth);
       setUser(null);
-      setGithubSession(false);
       console.log("User successfully logged out");
     } catch (error) {
       console.error("Error signing out:", error);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
-  // Function to handle the post-GitHub linking callback
-  useEffect(() => {
-    const handleGitHubCallback = async () => {
-      const firebaseUserId = localStorage.getItem("firebaseUserId");
-      if (firebaseUserId && githubSession) {
-        try {
-          // Retrieve the GitHub user ID from the backend session check or cookie
-          const response = await axios.get("http://localhost:5000/api/current_user", { withCredentials: true });
-          const githubUserId = response.data.githubUserId;
-          console.log("Retrieved GitHub User ID:", githubUserId);
-
-          // Call createToken again to generate new JWT tokens with both IDs
-          await createToken(firebaseUserId, githubUserId);
-          localStorage.removeItem("firebaseUserId"); // Clean up local storage after linking
-        } catch (error) {
-          console.error("Error in GitHub callback handling:", error);
-        }
-      }
-    };
-
-    handleGitHubCallback();
-  }, [githubSession]);
-
   return (
-    <AuthContext.Provider value={{ user, loginWithGitHub, linkGitHubAccount, logout, authLoading }}>
+    <AuthContext.Provider value={{ user, linkGoogleAccount, logout, authLoading }}>
       {children}
     </AuthContext.Provider>
   );

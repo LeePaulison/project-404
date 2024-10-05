@@ -1,30 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChakraProvider, Flex } from "@chakra-ui/react";
-import { useAuth } from "./auth/AuthProvider";
+import AuthProvider, { useAuth } from "./auth/AuthProvider"; // Import the AuthProvider
 import ChatLayout from "./layouts/ChatLayout";
-import NavBar from "./components/NavBar"; // Import the NavBar
+import NavBar from "./components/NavBar";
+
 import { fetchConversations, fetchMessages, createNewConversation } from "./api/conversations";
 
-
 function App() {
-  const { user, loginWithGitHub, handleAnonSignIn, logout, authLoading } = useAuth();
+  const { user, handleAnonSignIn, logout, authLoading } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedConversationId, setSelectedConversationId] = useState(null);
-
-  // Fetch conversations when the component mounts
-  // useEffect(() => {
-  //   const loadConversations = async () => {
-  //     try {
-  //       const data = await fetchConversations();
-  //       setConversations(data);
-  //     } catch (error) {
-  //       console.error("Failed to load conversations:", error);
-  //     }
-  //   };
-
-  //   loadConversations();
-  // }, []);
 
   // Handle conversation selection and load messages
   const handleSelectConversation = async (conversationId) => {
@@ -37,7 +23,7 @@ function App() {
     }
   };
 
-  // In the `AppLayout` component
+  // Handle creating a new conversation
   const handleNewConversation = async () => {
     try {
       console.log("User ID:", user);
@@ -54,27 +40,23 @@ function App() {
 
   return (
     <ChakraProvider>
-      {/* Include NavBar in the Main App */}
-      <Flex direction="column" h="100vh">
-        <NavBar
-          user={user}
-          onLoginGitHub={loginWithGitHub}
-          onLoginFirebase={handleAnonSignIn} // Placeholder for Firebase login
-          onLogout={logout}
-        />
-        {user ? (
-          <ChatLayout
-            conversations={conversations}
-            messages={messages}
-            onSelectConversation={handleSelectConversation}
-            createNewConversation={handleNewConversation}
-          />
-        ) : (
-          <div style={{ textAlign: "center", marginTop: "50px" }}>
-            <h1>Please login to start chatting</h1>
-          </div>
-        )}
-      </Flex>
+      <AuthProvider> {/* Wrap your entire app with AuthProvider */}
+        <Flex direction="column" h="100vh">
+          <NavBar />
+          {user ? (
+            <ChatLayout
+              conversations={conversations}
+              messages={messages}
+              onSelectConversation={handleSelectConversation}
+              createNewConversation={handleNewConversation}
+            />
+          ) : (
+            <div style={{ textAlign: "center", marginTop: "50px" }}>
+              <h1>Please login to start chatting</h1>
+            </div>
+          )}
+        </Flex>
+      </AuthProvider>
     </ChakraProvider>
   );
 }

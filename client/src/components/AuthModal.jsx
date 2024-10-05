@@ -1,4 +1,4 @@
-// src/components/AuthModal.jsx
+import { useState } from "react";
 import {
   Box,
   Center,
@@ -13,24 +13,25 @@ import {
   Text,
   Flex,
 } from "@chakra-ui/react";
-import LinkGitHubButton from "./LinkGitHubButton";
+import { useAuth } from "../auth/AuthProvider"; // Import the useAuth hook
 
-const AuthModal = ({ user, onLoginGitHub, onLoginFirebase, onLogout, showModal, setShowModal }) => {
+const AuthModal = () => {
+  const { user, linkGoogleAccount, logout } = useAuth(); // Use the Google-specific function
+  const [showModal, setShowModal] = useState(false);
 
   return (
     <>
-      {/* Login Button in the Nav Bar */}
-      {
-        user ? (
-          <Button onClick={onLogout} colorScheme="red" variant="outline" mr={4}>
-            Logout
-          </Button>
-        ) : (
-          <Button onClick={() => setShowModal(true)} colorScheme="blue" variant="outline" mr={4}>
-            Sign In
-          </Button>
-        )
-      }
+      {/* Initial Button: "Sign In" if no user, otherwise show "Account" */}
+      {user ? (
+        <Button onClick={() => setShowModal(true)} colorScheme="blue" variant="outline" mr={4}>
+          Account
+        </Button>
+      ) : (
+        <Button onClick={linkGoogleAccount} colorScheme="green" variant="outline" mr={4}>
+          Sign In
+        </Button>
+      )}
+
       {/* Modal for Authentication Options */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
         <ModalOverlay />
@@ -39,12 +40,14 @@ const AuthModal = ({ user, onLoginGitHub, onLoginFirebase, onLogout, showModal, 
           <ModalBody>
             {user ? (
               <Box textAlign="center">
-                <Avatar src={user.photos && user.photos[0].value || ""} size="xl" mb={4} />
-                <Text fontSize="lg">{user.isAnonymous ? "Guest User" : user.displayName || "GitHub User"}</Text>
+                <Avatar src={user.photoURL || ""} size="xl" mb={4} />
+                <Text fontSize="lg">
+                  {user.isAnonymous ? "Guest User" : user.displayName || "Google User"}
+                </Text>
+                <Text fontSize="md">{user.email || ""}</Text>
                 <Center>
-                  <Flex direction="column" justifyContent="center" my={4} >
-                    {user.isAnonymous && <LinkGitHubButton />}
-                    <Button mt={4} colorScheme="red" onClick={onLogout}>
+                  <Flex direction="column" justifyContent="center" my={4}>
+                    <Button mt={4} colorScheme="red" onClick={logout}>
                       Logout
                     </Button>
                   </Flex>
@@ -52,20 +55,10 @@ const AuthModal = ({ user, onLoginGitHub, onLoginFirebase, onLogout, showModal, 
               </Box>
             ) : (
               <Box textAlign="center">
-                <Button colorScheme="teal" mb={4} onClick={() => {
-                  setShowModal(false);
-                  onLoginGitHub();
-                }}>
-                  Sign In with GitHub
+                <Text mb={4}>You are currently logged out. Please sign in to access your account.</Text>
+                <Button colorScheme="blue" mt={4} onClick={linkGoogleAccount}>
+                  Sign In with Google
                 </Button>
-                <Text>or</Text>
-                <Button colorScheme="blue" mt={4} onClick={() => {
-                  setShowModal(false);
-                  onLoginFirebase();
-                }}>
-                  Sign In as Guest
-                </Button>
-                {console.log(`showModal on button click: ${showModal}`)}
               </Box>
             )}
           </ModalBody>
