@@ -1,5 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { Provider } from "react-redux";
+import { store } from "./store"; // Import the Redux store
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import AuthProvider from "./auth/AuthProvider";  // Firebase Auth wrapper
 import { ChakraProvider } from "@chakra-ui/react";
@@ -25,10 +27,12 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AuthProvider>
-      <ChakraProvider theme={theme}>
-        <RouterProvider router={router} />
-      </ChakraProvider>
-    </AuthProvider>
+    <Provider store={store}>
+      <AuthProvider>
+        <ChakraProvider theme={theme}>
+          <RouterProvider router={router} />
+        </ChakraProvider>
+      </AuthProvider>
+    </Provider>
   </React.StrictMode>
 );

@@ -1,75 +1,58 @@
-import { useState } from "react";
-import {
-  Box,
-  Center,
-  Avatar,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  Button,
-  Text,
-  Flex,
-} from "@chakra-ui/react";
-import { useAuth } from "../auth/AuthProvider"; // Import the useAuth hook
+import { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, useDisclosure } from '@chakra-ui/react';
+import { useAuth } from '../auth/AuthProvider'; // Use the AuthProvider for Google actions
 
 const AuthModal = () => {
-  const { user, linkGoogleAccount, logout } = useAuth(); // Use the Google-specific function
-  const [showModal, setShowModal] = useState(false);
+  const { linkGoogleAccount, logout } = useAuth(); // Destructure Google account link function
+  const user = useSelector((state) => state.user.user); // Get user from Redux store
+  const [authType, setAuthType] = useState('link'); // Set the type of authentication action
+  const { isOpen, onOpen, onClose } = useDisclosure(); // Modal state
+
+  // Determine the modal type based on the user's email presence
+  useEffect(() => {
+    if (user && user.email && user.email !== '') {
+      setAuthType('login');
+    } else {
+      setAuthType('link');
+    }
+  }, [user]);
+
+  // Handle the action for linking or logging in with Google
+  const handleGoogleAction = () => {
+    if (authType === 'link') {
+      linkGoogleAccount(); // Call link function from AuthProvider
+    } else {
+      console.log('Google Login Triggered'); // Placeholder for Google login logic
+    }
+    onClose(); // Close modal after action
+  };
 
   return (
     <>
-      {/* Initial Button: "Sign In" if no user, otherwise show "Account" */}
-      {user ? (
-        <Button onClick={() => setShowModal(true)} colorScheme="blue" variant="outline" mr={4}>
-          Account
-        </Button>
-      ) : (
-        <Button onClick={linkGoogleAccount} colorScheme="green" variant="outline" mr={4}>
-          Sign In
-        </Button>
-      )}
-
-      {/* Modal for Authentication Options */}
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
+      <Button colorScheme="teal" onClick={onOpen}>
+        {authType === 'link' ? 'Link Google Account' : 'Account Settings'}
+      </Button>
+      <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{user ? "Account Information" : "Sign In"}</ModalHeader>
+          <ModalHeader>
+            {authType === 'link' ? 'Link Google Account' : 'Log In with Google'}
+          </ModalHeader>
           <ModalBody>
-            {user ? (
-              <Box textAlign="center">
-                <Avatar src={user.photoURL || ""} size="xl" mb={4} />
-                <Text fontSize="lg">
-                  {user.isAnonymous ? "Guest User" : user.displayName || "Google User"}
-                </Text>
-                <Text fontSize="md">{user.email || ""}</Text>
-                <Center>
-                  <Flex direction="column" justifyContent="center" my={4}>
-                    <Button mt={4} colorScheme="red" onClick={logout}>
-                      Logout
-                    </Button>
-                  </Flex>
-                </Center>
-              </Box>
-            ) : (
-              <Box textAlign="center">
-                <Text mb={4}>You are currently logged out. Please sign in to access your account.</Text>
-                <Button colorScheme="blue" mt={4} onClick={linkGoogleAccount}>
-                  Sign In with Google
-                </Button>
-              </Box>
-            )}
+            <Box textAlign="center">
+              <Button colorScheme="teal" onClick={handleGoogleAction}>
+                {authType === 'link' ? 'Link Google Account' : 'Log In with Google'}
+              </Button>
+            </Box>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" onClick={() => setShowModal(false)}>
-              Close
-            </Button>
+            <Button onClick={onClose}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
     </>
+
   );
 };
 
