@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { ChakraProvider, Flex } from "@chakra-ui/react";
-import AuthProvider, { useAuth } from "./auth/AuthProvider"; // Import the AuthProvider
+import { Flex } from "@chakra-ui/react";
+import { useAuth } from "./auth/AuthProvider"; // Import the AuthProvider
+import { useSelector } from "react-redux";
 import ChatLayout from "./layouts/ChatLayout";
 import NavBar from "./components/NavBar";
 
 import { fetchConversations, fetchMessages, createNewConversation } from "./api/conversations";
 
 function App() {
-  const { user, handleAnonSignIn, logout, authLoading } = useAuth();
+  const { authLoading } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const user = useSelector((state) => state.user.user);
+
+  console.log("User:", user);
 
   // Handle conversation selection and load messages
   const handleSelectConversation = async (conversationId) => {
@@ -39,25 +43,21 @@ function App() {
   }
 
   return (
-    <ChakraProvider>
-      <AuthProvider> {/* Wrap your entire app with AuthProvider */}
-        <Flex direction="column" h="100vh">
-          <NavBar />
-          {user ? (
-            <ChatLayout
-              conversations={conversations}
-              messages={messages}
-              onSelectConversation={handleSelectConversation}
-              createNewConversation={handleNewConversation}
-            />
-          ) : (
-            <div style={{ textAlign: "center", marginTop: "50px" }}>
-              <h1>Please login to start chatting</h1>
-            </div>
-          )}
-        </Flex>
-      </AuthProvider>
-    </ChakraProvider>
+    <Flex direction="column" h="100vh">
+      <NavBar />
+      {user ? (
+        <ChatLayout
+          conversations={conversations}
+          messages={messages}
+          onSelectConversation={handleSelectConversation}
+          createNewConversation={handleNewConversation}
+        />
+      ) : (
+        <div style={{ textAlign: "center", marginTop: "50px" }}>
+          <h1>Please login to start chatting</h1>
+        </div>
+      )}
+    </Flex>
   );
 }
 

@@ -8,10 +8,14 @@ exports.createUser = async (req, res) => {
   try {
     const { firebaseUIDs, email } = req.body;
 
+    // Debug: Log the incoming request to ensure all required fields are present
+    console.log('createUser called with:', { firebaseUIDs, email });
+
     // Check if any of the provided UIDs already exist in a different user document
     const existingUser = await User.findOne({ firebaseUIDs: { $in: firebaseUIDs } });
     if (existingUser) {
-      return res.status(400).json({ error: 'A user with one of the provided firebaseUIDs already exists' });
+      console.log(`Existing user found for UID: ${firebaseUIDs}. Returning existing user.`);
+      return res.status(200).json(existingUser); // Return the existing user
     }
 
     // Create a new user
@@ -21,6 +25,7 @@ exports.createUser = async (req, res) => {
     });
 
     await newUser.save();
+    console.log(`New user created successfully for UID: ${firebaseUIDs}`);
     res.status(201).json(newUser);
   } catch (error) {
     console.error('Error creating user:', error);
@@ -63,86 +68,45 @@ exports.deleteUser = async (req, res) => {
 
 // Merge Firebase UIDs and transfer conversations
 exports.mergeUserUIDs = async (req, res) => {
-  const { currentFirebaseUID, googleEmail } = req.body;
-
-  const session = process.env.USE_TRANSACTIONS === 'false' ? null : await mongoose.startSession();
-  if (session) session.startTransaction();
-
   try {
-    console.log(`Starting merge for Firebase UID: ${currentFirebaseUID} and Google Email: ${googleEmail}`);
+    const { primaryUID, secondaryUID, googleUID, email } = req.body;
 
-    // Step 1: Find the current anonymous user by UID
-    const anonymousUser = await User.findOne({ firebaseUIDs: currentFirebaseUID }).session(session);
-    console.log('Anonymous User Found:', anonymousUser);
-    if (!anonymousUser) {
-      if (session) {
-        await session.abortTransaction();
-        session.endSession();
-      }
-      return res.status(404).json({ error: 'Anonymous user not found' });
+    // Check if the secondaryUID, googleUID, or email are already in a user document
+    const existingUser = await User.findOne({
+      $or: [
+        { firebaseUIDs: { $in: [secondaryUID] } },  // Check for secondaryUID conflict
+        { googleUID: googleUID },                   // Check for Google UID conflict
+        { email: email ? email.toLowerCase() : '' }, // Check for email conflict
+      ],
+    });
+
+    if (existingUser) {
+      console.log(`Conflict found. The UID/email already exists in another user. Returning existing user.`);
+      return res.status(200).json(existingUser); // Return the existing user if any conflicts are found
     }
 
-    // Step 2: Check if a user with the given Google email already exists
-    const existingUser = await User.findOne({ email: googleEmail }).session(session);
-    console.log('Existing Google User Found:', existingUser);
-    if (!existingUser) {
-      if (session) {
-        await session.abortTransaction();
-        session.endSession();
-      }
-      return res.status(404).json({ error: 'Google user not found' });
-    }
-
-    // Step 3: Check if the Anonymous user is already linked to the Google user
-    if (existingUser.firebaseUIDs.includes(currentFirebaseUID)) {
-      console.log(`The Anonymous UID ${currentFirebaseUID} is already linked to the Google account.`);
-      if (session) {
-        await session.abortTransaction();
-        session.endSession();
-      }
-      return res.status(400).json({ error: 'The provided UID is already linked to this Google account.' });
-    }
-
-    // Step 4: Add the new anonymous UID to the existing user’s `firebaseUIDs` array
-    console.log(`Adding UID ${currentFirebaseUID} to Google User`);
-    existingUser.firebaseUIDs.push(currentFirebaseUID);
-
-    const saveOptions = session ? { session } : undefined; // Use saveOptions only if session is valid
-    await existingUser.save(saveOptions);
-    console.log('Updated Google User UIDs:', existingUser.firebaseUIDs);
-
-    // Step 5: Transfer conversations to the existing user
-    console.log('Transferring conversations...');
-    const transferResult = await Conversation.updateMany(
-      { userId: anonymousUser._id },
-      { $set: { userId: existingUser._id } },
-      session ? { session } : {}
+    // Merge the secondary UID, Google UID, and email into the primary user document using $addToSet and $set
+    const updatedUser = await User.findOneAndUpdate(
+      { firebaseUIDs: primaryUID },
+      {
+        $addToSet: { firebaseUIDs: secondaryUID },  // Add secondary UID to firebaseUIDs array
+        $set: { googleUID: googleUID, email: email ? email.toLowerCase() : '' }, // Set Google UID and email
+      },
+      { new: true }
     );
-    console.log(`Transferred Conversations:`, transferResult);
 
-    // Step 6: Delete the old anonymous user
-    await User.deleteOne({ _id: anonymousUser._id }, session ? { session } : {});
-    console.log('Deleted Anonymous User:', anonymousUser);
-
-    // Commit the transaction
-    if (session) {
-      await session.commitTransaction();
-      session.endSession();
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'Primary user not found.' });
     }
 
-    // Respond with a success message
-    console.log('Merge Successful!');
-    return res.json({ message: 'User UIDs merged and conversations transferred successfully' });
-
+    console.log(`Successfully merged UID ${secondaryUID}, Google UID, and email into primary user ${primaryUID}.`);
+    return res.status(200).json(updatedUser);
   } catch (error) {
-    if (session) {
-      await session.abortTransaction();
-      session.endSession();
-    }
-    console.error('Error merging users:', error);
-    return res.status(500).json({ error: 'Failed to merge users' });
+    console.error('Error merging UIDs:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 
 
 
