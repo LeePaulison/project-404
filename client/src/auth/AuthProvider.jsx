@@ -96,7 +96,7 @@ const AuthProvider = ({ children }) => {
   };
 
   // Login with Anonymous account
-  const loginAnonymously = async () => {
+  const anonymousLogin = async () => {
     try {
       setAuthLoading(true); // Set loading state to true during login
       const user = await signInAnonymously(auth); // Firebase anonymous sign-in
@@ -115,7 +115,7 @@ const AuthProvider = ({ children }) => {
   };
 
   // Login with Google account
-  const loginWithGoogle = async () => {
+  const googleLogin = async () => {
     try {
       setAuthLoading(true); // Set loading state to true during login
       const result = await signInWithPopup(auth, googleProvider); // Firebase Google sign-in
@@ -192,7 +192,7 @@ const AuthProvider = ({ children }) => {
 
 
   return (
-    <AuthContext.Provider value={{ authLoading, linkGoogleAccount, logout }}>
+    <AuthContext.Provider value={{ authLoading, linkGoogleAccount, anonymousLogin, googleLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );
