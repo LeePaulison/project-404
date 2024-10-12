@@ -123,7 +123,8 @@ const AuthProvider = ({ children }) => {
       if (result.user) {
         const userData = await createUser(result.user.uid, result.user.email || ''); // Create or retrieve user data
         if (userData) {
-          dispatch(setUser(userData)); // Update Redux state with the user data
+          const updatedUser = { ...userData, displayName: result.user.displayName, photoURL: result.user.photoURL };
+          dispatch(setUser(updatedUser)); // Update Redux state with the user data
         }
       }
     } catch (error) {
