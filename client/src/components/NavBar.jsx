@@ -1,8 +1,8 @@
-// src/components/NavBar.jsx
 import { Button, Flex, Heading, Spacer } from "@chakra-ui/react";
 import { useDisclosure } from "@chakra-ui/react";
 import { useSelector } from "react-redux";
 import AccountModal from "./AccountModal"; // Import the AccountModal component
+import LoginModal from "./LoginModal"; // Import the LoginModal component
 
 const NavBar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure(); // Chakra UI modal state
@@ -11,13 +11,24 @@ const NavBar = () => {
     <Flex bg="gray.800" color="white" p={4} alignItems="center">
       <Heading size="lg">Project 404</Heading>
       <Spacer />
-      {/* Include AuthModal in the NavBar */}
-      <Button colorScheme="teal" onClick={onOpen}>
-        {user?.email === "" ? 'Link Google Account' : 'Account Settings'}
-      </Button>
+      {/* Include LoginModal in the NavBar */}
+      {user === null && <>
+        <Button colorScheme="teal" onClick={onOpen}>
+          Login
+        </Button>
+        <LoginModal isOpen={isOpen} onClose={onClose} />
 
-      {/* Account Modal with isOpen and onClose state */}
-      <AccountModal isOpen={isOpen} onClose={onClose} />    </Flex>
+      </>
+      }
+      {/* Include AuthModal in the NavBar */}
+      {user !== null && <>
+        <Button colorScheme="teal" onClick={onOpen}>
+          {user?.email === "" ? 'Link Google Account' : 'Account Settings'}
+        </Button>
+        <AccountModal isOpen={isOpen} onClose={onClose} />
+      </>
+      }
+    </Flex>
   );
 };
 

@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types';
+
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@chakra-ui/react';
 import { useSelector } from 'react-redux';
 import AnonymousUserModalContent from './AnonymousUserModalContent';
@@ -27,3 +29,8 @@ const AccountModal = ({ isOpen, onClose }) => {
 };
 
 export default AccountModal;
+
+AccountModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
