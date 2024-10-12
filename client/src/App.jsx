@@ -14,8 +14,6 @@ function App() {
   const [selectedConversationId, setSelectedConversationId] = useState(null);
   const user = useSelector((state) => state.user.user);
 
-  console.log("User:", user);
-
   // Handle conversation selection and load messages
   const handleSelectConversation = async (conversationId) => {
     setSelectedConversationId(conversationId);

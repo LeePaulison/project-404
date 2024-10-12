@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import PropTypes from "prop-types";
+
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { signInAnonymously, signOut, signInWithPopup, onAuthStateChanged } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUser, clearUser } from "../store/userSlice";
 import axios from "axios";
 
@@ -14,13 +16,18 @@ export function useAuth() {
 
 const AuthProvider = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
+  const user = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const signInAttempted = useRef(false);
+
+  console.log("User:", user.user);
 
   useEffect(() => {
     let unsubscribe;
     const initializeAuth = async () => {
       try {
         unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+          console.log("Current User:", currentUser);
           if (currentUser) {
             const userData = await createUser(currentUser.uid, currentUser.email || '');
             if (userData) {
@@ -33,8 +40,12 @@ const AuthProvider = ({ children }) => {
           }
         });
 
+        console.log("Auth Initialized");
+        console.log("Current User:", auth.currentUser);
+
         // Check if a user is already logged in
-        if (!auth.currentUser) {
+        if (!auth.currentUser && !signInAttempted.current) {
+          signInAttempted.current = true;
           await signInAnonymously(auth); // Sign in anonymously if no user is logged in
         }
       } catch (error) {
@@ -45,10 +56,10 @@ const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-
     return () => {
       if (unsubscribe) {
         unsubscribe();
+        dispatch(clearUser());
       }
     };
   }, [dispatch]);
@@ -81,6 +92,44 @@ const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Error merging user UIDs:", error.response ? error.response.data : error.message);
       return null;
+    }
+  };
+
+  // Login with Anonymous account
+  const loginAnonymously = async () => {
+    try {
+      setAuthLoading(true); // Set loading state to true during login
+      const user = await signInAnonymously(auth); // Firebase anonymous sign-in
+      console.log("User successfully logged in anonymously");
+      if (user) {
+        const userData = await createUser(user.uid); // Create a new user in the database
+        if (userData) {
+          dispatch(setUser(userData)); // Update Redux state with the new user data
+        }
+      }
+    } catch (error) {
+      console.error("Error signing in anonymously:", error);
+    } finally {
+      setAuthLoading(false); // Reset loading state after login
+    }
+  };
+
+  // Login with Google account
+  const loginWithGoogle = async () => {
+    try {
+      setAuthLoading(true); // Set loading state to true during login
+      const result = await signInWithPopup(auth, googleProvider); // Firebase Google sign-in
+      console.log("Google User:", result.user);
+      if (result.user) {
+        const userData = await createUser(result.user.uid, result.user.email || ''); // Create or retrieve user data
+        if (userData) {
+          dispatch(setUser(userData)); // Update Redux state with the user data
+        }
+      }
+    } catch (error) {
+      console.error("Error signing in with Google:", error);
+    } finally {
+      setAuthLoading(false); // Reset loading state after login
     }
   };
 
@@ -132,6 +181,7 @@ const AuthProvider = ({ children }) => {
       setAuthLoading(true); // Set loading state to true during logout
       await signOut(auth); // Firebase signOut
       dispatch(clearUser()); // Clear the user from Redux
+      signInAttempted.current = false; // Reset sign-in attempt status
       console.log("User successfully logged out");
     } catch (error) {
       console.error("Error signing out:", error);
@@ -149,3 +199,7 @@ const AuthProvider = ({ children }) => {
 };
 
 export default AuthProvider;
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
