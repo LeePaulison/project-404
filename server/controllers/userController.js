@@ -78,13 +78,14 @@ exports.mergeUserUIDs = async (req, res) => {
     });
 
     if (existingUser) {
-      console.log(`Conflict found. The UID/email already exists in another user. Returning existing user.`);
-      return res.status(200).json(existingUser); // Return the existing user if any conflicts are found
+      console.log(`The UID/email already exists in another user. Adding new firebaseUID to existing user and returning updated user.`);
+      const updatedUser = await User.findOneAndUpdate(
+        { firebaseUIDs: secondaryUID },
+        { $addToSet: { firebaseUIDs: primaryUID } },
+        { new: true }
+      );
+      return res.status(200).json(updatedUser); // Return the user updated with new anonymous id
     } else {
-      console.log(`Primary UID in request: ${primaryUID}`);
-      const primaryUser = await User.findOne({ firebaseUIDs: { $in: primaryUID } });
-      console.log(`Primary User found:`, primaryUser);
-      
       const updatedUser = await User.findOneAndUpdate(
         { firebaseUIDs: primaryUID },
         {
@@ -93,7 +94,6 @@ exports.mergeUserUIDs = async (req, res) => {
         },
         { new: true }
       );
-      console.log(`Successfully merged UID ${secondaryUID}, Google UID, and email into primary user ${primaryUID}.`);
       return res.status(200).json(updatedUser);
     }
 
