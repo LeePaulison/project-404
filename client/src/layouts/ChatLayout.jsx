@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import PropTypes from "prop-types";
+
 import { Box, Flex, Heading, VStack, Button, HStack } from "@chakra-ui/react";
 import QueryInput from "../components/QueryInput";
 
@@ -67,3 +69,9 @@ const ChatLayout = ({ conversations, onSelectConversation, createNewConversation
 };
 
 export default ChatLayout;
+
+ChatLayout.propTypes = {
+  conversations: PropTypes.array.isRequired,
+  onSelectConversation: PropTypes.func.isRequired,
+  createNewConversation: PropTypes.func.isRequired,
+};

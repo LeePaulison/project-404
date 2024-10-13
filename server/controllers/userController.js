@@ -1,7 +1,4 @@
-const mongoose = require('mongoose');
-
 const User = require('../models/User');
-const Conversation = require('../models/Conversation');
 
 // Create a new user
 exports.createUser = async (req, res) => {
@@ -83,24 +80,23 @@ exports.mergeUserUIDs = async (req, res) => {
     if (existingUser) {
       console.log(`Conflict found. The UID/email already exists in another user. Returning existing user.`);
       return res.status(200).json(existingUser); // Return the existing user if any conflicts are found
+    } else {
+      console.log(`Primary UID in request: ${primaryUID}`);
+      const primaryUser = await User.findOne({ firebaseUIDs: { $in: primaryUID } });
+      console.log(`Primary User found:`, primaryUser);
+      
+      const updatedUser = await User.findOneAndUpdate(
+        { firebaseUIDs: primaryUID },
+        {
+          $addToSet: { firebaseUIDs: secondaryUID },  // Add secondary UID to firebaseUIDs array
+          $set: { googleUID: googleUID, email: email ? email.toLowerCase() : '' }, // Set Google UID and email
+        },
+        { new: true }
+      );
+      console.log(`Successfully merged UID ${secondaryUID}, Google UID, and email into primary user ${primaryUID}.`);
+      return res.status(200).json(updatedUser);
     }
 
-    // Merge the secondary UID, Google UID, and email into the primary user document using $addToSet and $set
-    const updatedUser = await User.findOneAndUpdate(
-      { firebaseUIDs: primaryUID },
-      {
-        $addToSet: { firebaseUIDs: secondaryUID },  // Add secondary UID to firebaseUIDs array
-        $set: { googleUID: googleUID, email: email ? email.toLowerCase() : '' }, // Set Google UID and email
-      },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return res.status(404).json({ error: 'Primary user not found.' });
-    }
-
-    console.log(`Successfully merged UID ${secondaryUID}, Google UID, and email into primary user ${primaryUID}.`);
-    return res.status(200).json(updatedUser);
   } catch (error) {
     console.error('Error merging UIDs:', error);
     res.status(500).json({ error: 'Internal server error' });

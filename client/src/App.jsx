@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Flex } from "@chakra-ui/react";
-import { useAuth } from "./auth/AuthProvider"; // Import the AuthProvider
 import { useSelector } from "react-redux";
 import ChatLayout from "./layouts/ChatLayout";
 import NavBar from "./components/NavBar";
@@ -8,11 +7,11 @@ import NavBar from "./components/NavBar";
 import { fetchConversations, fetchMessages, createNewConversation } from "./api/conversations";
 
 function App() {
-  const { authLoading } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedConversationId, setSelectedConversationId] = useState(null);
   const user = useSelector((state) => state.user.user);
+  const status = useSelector((state) => state.user.status);
 
   // Handle conversation selection and load messages
   const handleSelectConversation = async (conversationId) => {
@@ -36,7 +35,7 @@ function App() {
     }
   };
 
-  if (authLoading) {
+  if (status === "loading") {
     return <div>Loading...</div>; // Prevent UI from rendering until auth state is established
   }
 
