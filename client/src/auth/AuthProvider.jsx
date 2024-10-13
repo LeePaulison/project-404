@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 
-import { createContext, useContext, useEffect, useState, useRef } from "react";
-import { signInAnonymously, signOut, signInWithPopup, onAuthStateChanged } from "firebase/auth";
+import { createContext, useContext, useEffect, useRef, useCallback } from "react";
+import { signInAnonymously, signOut, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser, clearUser } from "../store/userSlice";
@@ -15,56 +15,82 @@ export function useAuth() {
 }
 
 const AuthProvider = ({ children }) => {
-  const [authLoading, setAuthLoading] = useState(true);
   const user = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const signInAttempted = useRef(false);
+  const logoutAttempted = useRef(false);
 
   console.log("User:", user.user);
 
-  useEffect(() => {
-    let unsubscribe;
-    const initializeAuth = async () => {
-      try {
-        unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-          console.log("Current User:", currentUser);
-          if (currentUser) {
-            const userData = await createUser(currentUser.uid, currentUser.email || '');
-            if (userData) {
-              dispatch(setUser(userData)); // Correctly set the user in Redux
-            }
-            setAuthLoading(false);
-          } else {
-            dispatch(clearUser());
-            setAuthLoading(false);
-          }
-        });
+  // useEffect(() => {
+  //   let unsubscribe;
+  //   const initializeAuth = async () => {
+  //     try {
+  //       unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+  //         console.log("Current User:", currentUser);
+  //         if (currentUser) {
+  //           const userData = await createUser(currentUser.uid, currentUser.email || '');
+  //           if (userData) {
+  //             dispatch(setUser(userData)); // Correctly set the user in Redux
+  //           }
+  //           setAuthLoading(false);
+  //         } else {
+  //           dispatch(clearUser());
+  //           setAuthLoading(false);
+  //         }
+  //       });
 
-        console.log("Auth Initialized");
-        console.log("Current User:", auth.currentUser);
+  //       console.log("Auth Initialized");
+  //       console.log("Current User:", auth.currentUser);
 
-        // Check if a user is already logged in
-        if (!auth.currentUser && !signInAttempted.current) {
-          signInAttempted.current = true;
-          await signInAnonymously(auth); // Sign in anonymously if no user is logged in
-        }
-      } catch (error) {
-        console.error("Error initializing authentication:", error);
-        dispatch(clearUser());
-        setAuthLoading(false);
-      }
-    };
+  //       // Check if a user is already logged in
+  //       if (!auth.currentUser && !signInAttempted.current) {
+  //         signInAttempted.current = true;
+  //         await signInAnonymously(auth); // Sign in anonymously if no user is logged in
+  //       }
+  //     } catch (error) {
+  //       console.error("Error initializing authentication:", error);
+  //       dispatch(clearUser());
+  //       setAuthLoading(false);
+  //     }
+  //   };
 
-    initializeAuth();
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-        dispatch(clearUser());
-      }
-    };
-  }, [dispatch]);
+  //   initializeAuth();
+  //   return () => {
+  //     if (unsubscribe) {
+  //       unsubscribe();
+  //       dispatch(clearUser());
+  //     }
+  //   };
+  // }, [dispatch]);
 
   // Function to create a new user or retrieve an existing user from the server
+
+  // Login with Anonymous account
+  const anonymousLogin = useCallback(async () => {
+    try {
+      const user = await signInAnonymously(auth); // Firebase anonymous sign-in
+      console.log("Anonymous User logging in:", user);
+      if (user.user.uid !== null) {
+        const userData = await createUser(user.user.uid); // Create a new user in the database
+        if (userData) {
+          dispatch(setUser(userData)); // Update Redux state with the new user data
+        }
+      }
+      logoutAttempted.current = false; // Reset logout attempt status
+    } catch (error) {
+      console.error("Error signing in anonymously:", error);
+    }
+  }, [dispatch]);
+
+
+  useEffect(() => {
+    if (!user.user && !signInAttempted.current && !logoutAttempted.current) {
+      signInAttempted.current = true;
+      anonymousLogin();
+    }
+  }, [anonymousLogin, user.user]);
+
   const createUser = async (uid, email = '') => {
     try {
       const response = await axios.post("http://localhost:5000/api/users", { firebaseUIDs: [uid], email });
@@ -72,6 +98,24 @@ const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Failed to create or retrieve user:", error);
       return null;
+    }
+  };
+
+  // Login with Google account
+  const googleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider); // Firebase Google sign-in
+      console.log("Google User:", result.user);
+      if (result.user) {
+        const userData = await createUser(result.user.uid, result.user.email || ''); // Create or retrieve user data
+        if (userData) {
+          const updatedUser = { ...userData, displayName: result.user.displayName, photoURL: result.user.photoURL };
+          dispatch(setUser(updatedUser)); // Update Redux state with the user data
+        }
+      }
+      logoutAttempted.current = false; // Reset logout attempt status
+    } catch (error) {
+      console.error("Error signing in with Google:", error);
     }
   };
 
@@ -95,105 +139,57 @@ const AuthProvider = ({ children }) => {
     }
   };
 
-  // Login with Anonymous account
-  const anonymousLogin = async () => {
-    try {
-      setAuthLoading(true); // Set loading state to true during login
-      const user = await signInAnonymously(auth); // Firebase anonymous sign-in
-      console.log("User successfully logged in anonymously");
-      if (user) {
-        const userData = await createUser(user.uid); // Create a new user in the database
-        if (userData) {
-          dispatch(setUser(userData)); // Update Redux state with the new user data
-        }
-      }
-    } catch (error) {
-      console.error("Error signing in anonymously:", error);
-    } finally {
-      setAuthLoading(false); // Reset loading state after login
-    }
-  };
-
-  // Login with Google account
-  const googleLogin = async () => {
-    try {
-      setAuthLoading(true); // Set loading state to true during login
-      const result = await signInWithPopup(auth, googleProvider); // Firebase Google sign-in
-      console.log("Google User:", result.user);
-      if (result.user) {
-        const userData = await createUser(result.user.uid, result.user.email || ''); // Create or retrieve user data
-        if (userData) {
-          const updatedUser = { ...userData, displayName: result.user.displayName, photoURL: result.user.photoURL };
-          dispatch(setUser(updatedUser)); // Update Redux state with the user data
-        }
-      }
-    } catch (error) {
-      console.error("Error signing in with Google:", error);
-    } finally {
-      setAuthLoading(false); // Reset loading state after login
-    }
-  };
-
   // Function to link Google account to an existing anonymous account
   const linkGoogleAccount = async () => {
     const user = auth.currentUser; // Get the current authenticated user
 
-    if (user && user.isAnonymous) {
-      try {
+    try {
+      if (user?.isAnonymous) {
         // Perform Google sign-in and linking
         const result = await signInWithPopup(auth, googleProvider);
-        const googleUser = result.user;
 
-        console.log("Google User:", googleUser);
+        console.log("Anonymous User:", user, "Google User:", result.user);
 
         // Extract UIDs and email for merging
         const primaryUID = user.uid; // Current anonymous UID
-        const secondaryUID = googleUser.uid; // Google Firebase UID
-        const googleUID = googleUser.providerData[0].uid; // Google-specific UID
-        const email = googleUser.email;
-        const googleData = {
-          displayName: googleUser.displayName,
-          photoURL: googleUser.photoURL,
-        }
-
-        console.log("Google Data:", googleData);
+        const secondaryUID = result.user.uid; // Google Firebase UID
+        const googleUID = result.user.providerData[0].uid; // Google-specific UID
+        const email = result.user.email;
 
         console.log("Linking Google Account. Primary UID:", primaryUID, "Secondary UID:", secondaryUID);
 
         // Merge the anonymous and Google accounts in the database
         const mergedUser = await mergeUserUIDs(primaryUID, secondaryUID, googleUID, email);
 
-        const updatedUser = { ...mergedUser, ...googleData };
+        console.log("Merged User Data:", mergedUser);
+
+        const updatedUser = { ...mergedUser, ...{ displayName: result.user.displayName, photoURL: result.user.photoURL } };
 
         console.log("Updated User Data:", updatedUser);
 
-        if (mergedUser) {
-          dispatch(setUser(updatedUser)); // Update Redux state with merged user data
-          console.log("User successfully linked and merged:", mergedUser);
-        }
-      } catch (error) {
-        console.error("Error linking Google account:", error);
-      }
+        dispatch(setUser(updatedUser)); // Update Redux state with merged user data
+        console.log("User successfully linked and merged:", updatedUser);
+      };
+    } catch (error) {
+      console.error("Error linking Google account:", error);
     }
-  };
+  }
 
   const logout = async () => {
     try {
-      setAuthLoading(true); // Set loading state to true during logout
       await signOut(auth); // Firebase signOut
       dispatch(clearUser()); // Clear the user from Redux
       signInAttempted.current = false; // Reset sign-in attempt status
+      logoutAttempted.current = true; // Set logout attempt status
       console.log("User successfully logged out");
     } catch (error) {
       console.error("Error signing out:", error);
-    } finally {
-      setAuthLoading(false); // Reset loading state after logout
     }
   };
 
 
   return (
-    <AuthContext.Provider value={{ authLoading, linkGoogleAccount, anonymousLogin, googleLogin, logout }}>
+    <AuthContext.Provider value={{ linkGoogleAccount, anonymousLogin, googleLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );
