@@ -78,6 +78,11 @@ exports.mergeUserUIDs = async (req, res) => {
     });
 
     if (existingUser) {
+      const anonExists = existingUser.firebaseUIDs.includes(primaryUID);
+      if (anonExists) {
+        console.log(`The UID/email already exists in the same user. Returning existing user.`);
+        return res.status(200).json(existingUser); // Return the existing user
+      }
       console.log(`The UID/email already exists in another user. Adding new firebaseUID to existing user and returning updated user.`);
       const updatedUser = await User.findOneAndUpdate(
         { firebaseUIDs: secondaryUID },
