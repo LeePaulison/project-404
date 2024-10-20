@@ -49,3 +49,21 @@ yarn-error.log*
 
 # Vite build output
 dist/
+
+# Yarn 2+
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
+# Specific file
+server/.yarn/install-state.gz
+
+# Firebase service account key
+server/project-404-dbd61-firebase-adminsdk-h4qwe-dad62b7d92.json
+
+# It's also a good practice to ignore all files with similar patterns
+server/*firebase-adminsdk*.json
