@@ -26,6 +26,7 @@ const RAW_RUNTIME_STATE =
       [null, {\
         "packageLocation": "./",\
         "packageDependencies": [\
+          ["@notionhq/client", "npm:2.2.15"],\
           ["cors", "npm:2.8.5"],\
           ["dotenv", "npm:16.4.5"],\
           ["eslint", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:9.13.0"],\
@@ -1606,6 +1607,17 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["@notionhq/client", [\
+      ["npm:2.2.15", {\
+        "packageLocation": "../../../../../C:/Users/haeka/AppData/Local/Yarn/Berry/cache/@notionhq-client-npm-2.2.15-7cc25af82c-10c0.zip/node_modules/@notionhq/client/",\
+        "packageDependencies": [\
+          ["@notionhq/client", "npm:2.2.15"],\
+          ["@types/node-fetch", "npm:2.6.11"],\
+          ["node-fetch", "virtual:7cc25af82ccd5a25dcb821bfd9a306cb0cefe5fa3dc0820a60523177235be24dbed0ac067280acf9dc8c99ca5664afdea3d639ffa14acfcb2c8d4e4f093f8f6e#npm:2.7.0"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["@npmcli/agent", [\
       ["npm:2.2.2", {\
         "packageLocation": "../../../../../C:/Users/haeka/AppData/Local/Yarn/Berry/cache/@npmcli-agent-npm-2.2.2-e2f559d6c0-10c0.zip/node_modules/@npmcli/agent/",\
@@ -1988,6 +2000,17 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@types/node", "npm:22.7.4"],\
           ["undici-types", "npm:6.19.8"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
+    ["@types/node-fetch", [\
+      ["npm:2.6.11", {\
+        "packageLocation": "../../../../../C:/Users/haeka/AppData/Local/Yarn/Berry/cache/@types-node-fetch-npm-2.6.11-55289bb1a8-10c0.zip/node_modules/@types/node-fetch/",\
+        "packageDependencies": [\
+          ["@types/node-fetch", "npm:2.6.11"],\
+          ["@types/node", "npm:22.7.4"],\
+          ["form-data", "npm:4.0.0"]\
         ],\
         "linkType": "HARD"\
       }]\
@@ -4046,7 +4069,7 @@ const RAW_RUNTIME_STATE =
           ["extend", "npm:3.0.2"],\
           ["https-proxy-agent", "npm:7.0.5"],\
           ["is-stream", "npm:2.0.1"],\
-          ["node-fetch", "virtual:11467afb7cf9e399c4ff54c4ab36fe5c4d3fece6ab1b8298fb82389f6d94b42475e1b5ec2fc3c9d191b12189c68dd36736b470173f436e08b9d4f8328c8cf29f#npm:2.7.0"],\
+          ["node-fetch", "virtual:7cc25af82ccd5a25dcb821bfd9a306cb0cefe5fa3dc0820a60523177235be24dbed0ac067280acf9dc8c99ca5664afdea3d639ffa14acfcb2c8d4e4f093f8f6e#npm:2.7.0"],\
           ["uuid", "npm:9.0.1"]\
         ],\
         "linkType": "HARD"\
@@ -4201,7 +4224,7 @@ const RAW_RUNTIME_STATE =
           ["abort-controller", "npm:3.0.0"],\
           ["duplexify", "npm:4.1.3"],\
           ["google-auth-library", "npm:9.14.1"],\
-          ["node-fetch", "virtual:11467afb7cf9e399c4ff54c4ab36fe5c4d3fece6ab1b8298fb82389f6d94b42475e1b5ec2fc3c9d191b12189c68dd36736b470173f436e08b9d4f8328c8cf29f#npm:2.7.0"],\
+          ["node-fetch", "virtual:7cc25af82ccd5a25dcb821bfd9a306cb0cefe5fa3dc0820a60523177235be24dbed0ac067280acf9dc8c99ca5664afdea3d639ffa14acfcb2c8d4e4f093f8f6e#npm:2.7.0"],\
           ["object-hash", "npm:3.0.0"],\
           ["proto3-json-serializer", "npm:2.0.2"],\
           ["protobufjs", "npm:7.4.0"],\
@@ -6094,10 +6117,10 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:11467afb7cf9e399c4ff54c4ab36fe5c4d3fece6ab1b8298fb82389f6d94b42475e1b5ec2fc3c9d191b12189c68dd36736b470173f436e08b9d4f8328c8cf29f#npm:2.7.0", {\
-        "packageLocation": "./.yarn/__virtual__/node-fetch-virtual-e9a25a80da/6/C:/Users/haeka/AppData/Local/Yarn/Berry/cache/node-fetch-npm-2.7.0-587d57004e-10c0.zip/node_modules/node-fetch/",\
+      ["virtual:7cc25af82ccd5a25dcb821bfd9a306cb0cefe5fa3dc0820a60523177235be24dbed0ac067280acf9dc8c99ca5664afdea3d639ffa14acfcb2c8d4e4f093f8f6e#npm:2.7.0", {\
+        "packageLocation": "./.yarn/__virtual__/node-fetch-virtual-eb3fea092a/6/C:/Users/haeka/AppData/Local/Yarn/Berry/cache/node-fetch-npm-2.7.0-587d57004e-10c0.zip/node_modules/node-fetch/",\
         "packageDependencies": [\
-          ["node-fetch", "virtual:11467afb7cf9e399c4ff54c4ab36fe5c4d3fece6ab1b8298fb82389f6d94b42475e1b5ec2fc3c9d191b12189c68dd36736b470173f436e08b9d4f8328c8cf29f#npm:2.7.0"],\
+          ["node-fetch", "virtual:7cc25af82ccd5a25dcb821bfd9a306cb0cefe5fa3dc0820a60523177235be24dbed0ac067280acf9dc8c99ca5664afdea3d639ffa14acfcb2c8d4e4f093f8f6e#npm:2.7.0"],\
           ["@types/encoding", null],\
           ["encoding", null],\
           ["whatwg-url", "npm:5.0.0"]\
@@ -6843,6 +6866,7 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./",\
         "packageDependencies": [\
           ["server", "workspace:."],\
+          ["@notionhq/client", "npm:2.2.15"],\
           ["cors", "npm:2.8.5"],\
           ["dotenv", "npm:16.4.5"],\
           ["eslint", "virtual:48fd9d653646a991d0eda5ffe92778b72de446c151643ca5c3964e62f24bed64d28e19b09ae1edf82cd4ab484e9e16d2c4b4953045a3524fb9431546d36f4563#npm:9.13.0"],\
@@ -7323,7 +7347,7 @@ const RAW_RUNTIME_STATE =
           ["teeny-request", "npm:9.0.0"],\
           ["http-proxy-agent", "npm:5.0.0"],\
           ["https-proxy-agent", "npm:5.0.1"],\
-          ["node-fetch", "virtual:11467afb7cf9e399c4ff54c4ab36fe5c4d3fece6ab1b8298fb82389f6d94b42475e1b5ec2fc3c9d191b12189c68dd36736b470173f436e08b9d4f8328c8cf29f#npm:2.7.0"],\
+          ["node-fetch", "virtual:7cc25af82ccd5a25dcb821bfd9a306cb0cefe5fa3dc0820a60523177235be24dbed0ac067280acf9dc8c99ca5664afdea3d639ffa14acfcb2c8d4e4f093f8f6e#npm:2.7.0"],\
           ["stream-events", "npm:1.0.5"],\
           ["uuid", "npm:9.0.1"]\
         ],\
