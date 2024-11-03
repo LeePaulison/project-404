@@ -20,8 +20,6 @@ const AuthProvider = ({ children }) => {
   const signInAttempted = useRef(false);
   const logoutAttempted = useRef(false);
 
-  console.log("User:", user.user);
-
   // useEffect(() => {
   //   let unsubscribe;
   //   const initializeAuth = async () => {
@@ -70,7 +68,6 @@ const AuthProvider = ({ children }) => {
   const anonymousLogin = useCallback(async () => {
     try {
       const user = await signInAnonymously(auth); // Firebase anonymous sign-in
-      console.log("Anonymous User logging in:", user);
       if (user.user.uid !== null) {
         const userData = await createUser(user.user.uid); // Create a new user in the database
         if (userData) {
@@ -91,9 +88,9 @@ const AuthProvider = ({ children }) => {
     }
   }, [anonymousLogin, user.user]);
 
-  const createUser = async (uid, email = '') => {
+  const createUser = async (firebaseUID, email = '') => {
     try {
-      const response = await axios.post("http://localhost:5000/api/users", { firebaseUIDs: [uid], email });
+      const response = await axios.post("http://localhost:5000/api/users", { firebaseUID, email });
       return response.data; // Return the user data from the API response
     } catch (error) {
       console.error("Failed to create or retrieve user:", error);
