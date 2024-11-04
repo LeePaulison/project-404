@@ -42,7 +42,7 @@ function App() {
   return (
     <Flex direction="column" h="100vh">
       <NavBar />
-      {user ? (
+      {user._id !== null ? (
         <ChatLayout
           conversations={conversations}
           messages={messages}

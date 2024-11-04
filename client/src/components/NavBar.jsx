@@ -7,12 +7,15 @@ import LoginModal from "./LoginModal"; // Import the LoginModal component
 const NavBar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure(); // Chakra UI modal state
   const user = useSelector((state) => state.user.user); // Get user state from Redux
+
+  console.log("NavBar", user);
+
   return (
     <Flex bg="gray.800" color="white" p={4} alignItems="center">
       <Heading size="lg">Project 404</Heading>
       <Spacer />
       {/* Include LoginModal in the NavBar */}
-      {user === null && <>
+      {user._id === null && <>
         <Button colorScheme="teal" onClick={onOpen}>
           Login
         </Button>
@@ -21,7 +24,7 @@ const NavBar = () => {
       </>
       }
       {/* Include AuthModal in the NavBar */}
-      {user !== null && <>
+      {user._id !== null && <>
         <Button colorScheme="teal" onClick={onOpen}>
           {user?.email === "" ? 'Link Google Account' : 'Account Settings'}
         </Button>

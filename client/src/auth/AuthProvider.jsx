@@ -69,9 +69,20 @@ const AuthProvider = ({ children }) => {
     try {
       const user = await signInAnonymously(auth); // Firebase anonymous sign-in
       if (user.user.uid !== null) {
-        const userData = await createUser(user.user.uid); // Create a new user in the database
+        const userData = await createUser(user.user.uid, null, null); // Create a new user in the database
+        console.log("Anonymous User Data:", userData);
         if (userData) {
-          dispatch(setUser(userData)); // Update Redux state with the new user data
+          // Update Redux state with the new user data
+          dispatch(setUser({
+            _id: userData._id,
+            googleUID: null,
+            email: null,
+            displayName: null,
+            photoURL: null,
+            archived: false,
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt,
+          }));
         }
       }
       logoutAttempted.current = false; // Reset logout attempt status
@@ -82,15 +93,15 @@ const AuthProvider = ({ children }) => {
 
 
   useEffect(() => {
-    if (!user.user && !signInAttempted.current && !logoutAttempted.current) {
+    if (!user._id && !signInAttempted.current && !logoutAttempted.current) {
       signInAttempted.current = true;
       anonymousLogin();
     }
-  }, [anonymousLogin, user.user]);
+  }, [anonymousLogin, user._id]);
 
-  const createUser = async (firebaseUID, email = '') => {
+  const createUser = async (firebaseUID, googleUID, email = '') => {
     try {
-      const response = await axios.post("http://localhost:5000/api/users", { firebaseUID, email });
+      const response = await axios.post("http://localhost:5000/api/users", { firebaseUID, googleUID, email });
       return response.data; // Return the user data from the API response
     } catch (error) {
       console.error("Failed to create or retrieve user:", error);
@@ -102,12 +113,34 @@ const AuthProvider = ({ children }) => {
   const googleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider); // Firebase Google sign-in
-      console.log("Google User:", result.user);
+      console.log("Google User UID:", result.user.uid);
+      console.log("Google User Email:", result.user.email);
+
       if (result.user) {
-        const userData = await createUser(result.user.uid, result.user.email || ''); // Create or retrieve user data
+        const googleUID = result.user.uid;
+        const email = result.user.email || '';
+
+        // Use fetch to send data to the server's createUser endpoint
+        const response = await axios.post("http://localhost:5000/api/users", {
+          firebaseUID: null,  // Explicitly set to null for Google login
+          googleUID: googleUID,
+          email: email,
+        });
+
+        // Parse the response from the server
+        const userData = await response.data;
         if (userData) {
-          const updatedUser = { ...userData, displayName: result.user.displayName, photoURL: result.user.photoURL };
-          dispatch(setUser(updatedUser)); // Update Redux state with the user data
+          dispatch(setUser({
+            _id: userData._id,
+            googleUID: googleUID,
+            email: email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+            archived: false,
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt,
+          }));
+          // Update Redux state with the user data
         }
       }
       logoutAttempted.current = false; // Reset logout attempt status
@@ -117,13 +150,12 @@ const AuthProvider = ({ children }) => {
   };
 
   // Function to merge anonymous UID and Google UID in the database
-  const mergeUserUIDs = async (primaryUID, secondaryUID, googleUID, email) => {
+  const mergeUserUIDs = async (primaryUID, googleUID, email) => {
     try {
-      console.log("Merging User Accounts:", { primaryUID, secondaryUID, googleUID, email });
+      console.log("Merging User Accounts:", { primaryUID, googleUID, email });
 
       const response = await axios.post("http://localhost:5000/api/users/merge", {
         primaryUID,
-        secondaryUID,
         googleUID,
         email,
       });
@@ -149,14 +181,13 @@ const AuthProvider = ({ children }) => {
 
         // Extract UIDs and email for merging
         const primaryUID = user.uid; // Current anonymous UID
-        const secondaryUID = result.user.uid; // Google Firebase UID
         const googleUID = result.user.providerData[0].uid; // Google-specific UID
         const email = result.user.email;
 
-        console.log("Linking Google Account. Primary UID:", primaryUID, "Secondary UID:", secondaryUID);
+        console.log("Linking Google Account. Primary UID:", primaryUID);
 
         // Merge the anonymous and Google accounts in the database
-        const mergedUser = await mergeUserUIDs(primaryUID, secondaryUID, googleUID, email);
+        const mergedUser = await mergeUserUIDs(primaryUID, googleUID, email);
 
         console.log("Merged User Data:", mergedUser);
 

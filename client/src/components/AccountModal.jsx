@@ -8,13 +8,15 @@ import GoogleUserModalContent from './GoogleUserModalContent';
 const AccountModal = ({ isOpen, onClose }) => {
   const user = useSelector((state) => state.user.user);
 
+  console.log("AccountModal", user);
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>{user?.isAnonymous ? 'Link Your Google Account' : 'Account Settings'}</ModalHeader>
         <ModalBody>
-          {user?.email === "" ? (
+          {user?.email === null ? (
             <AnonymousUserModalContent />
           ) : (
             <GoogleUserModalContent user={user} />

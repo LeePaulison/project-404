@@ -11,7 +11,7 @@ const userSchema = new Schema({
     archivedAt: { type: Date, default: null },
     linkedTo: { type: Schema.Types.ObjectId, ref: 'User' },
     mergedAt: { type: Date }
-  }], required: true, unique: true }, // Array of linked Firebase UIDs
+  }], unique: false }, // Array of linked Firebase UIDs
   email: { type: String, index: true, sparse: true }, // Email from Google OAuth
   googleUID: { type: String, index: true, sparse: true }, // Google OAuth UID
   displayName: { type: String, sparse: true }, // Display name from OAuth (Google)
