@@ -9,16 +9,16 @@ const userSchema = new Schema({
     updatedAt: { type: Date, default: Date.now },
     archived: { type: Boolean, default: false },
     archivedAt: { type: Date, default: null },
-    linkedTo: { type: Schema.Types.ObjectId, ref: 'User' },
     mergedAt: { type: Date }
   }], unique: false }, // Array of linked Firebase UIDs
-  email: { type: String, index: true, sparse: true }, // Email from Google OAuth
   googleUID: { type: String, index: true, sparse: true }, // Google OAuth UID
+  email: { type: String, index: true, sparse: true }, // Email from Google OAuth
   displayName: { type: String, sparse: true }, // Display name from OAuth (Google)
   photoURL: { type: String, sparse: true }, // Profile photo URL from OAuth (Google)
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   archived: { type: Boolean, default: false },
+  archivedAt: { type: Date, default: null },
   preferences: { type: Schema.Types.ObjectId, ref: 'Preferences' },
 });
 

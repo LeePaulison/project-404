@@ -106,87 +106,90 @@ exports.deleteUser = async (req, res) => {
 exports.mergeUserUIDs = async (req, res) => {
   try {
     const { primaryUID, googleUID, email } = req.body;
+    const currentTime = Date.now();
+    const normalizedEmail = email ? email.toLowerCase() : '';
 
-    console.log("Attempting to merge UIDs with the following data:");
-    console.log("primaryUID (Anonymous):", primaryUID);
-    console.log("googleUID:", googleUID);
-    console.log("email:", email ? email.toLowerCase() : '');
+    console.log("Merging UIDs:", { primaryUID, googleUID, email: normalizedEmail });
 
-    // 1. Search for an existing user by primaryUID, Google UID, or email
-    let user = await User.findOne({
-      $or: [
-        { 'firebaseUIDs.uid': primaryUID },          // Check for existing anonymous UID in firebaseUIDs
-        { googleUID: googleUID },                    // Check for existing Google UID
-        { email: email ? email.toLowerCase() : '' }, // Check for existing email
-      ],
-    });
+    // Step 1: Find users by googleUID and primaryUID
+    const [googleUser, anonymousUser] = await Promise.all([
+      User.findOne({ googleUID }),
+      User.findOne({ 'firebaseUIDs.uid': primaryUID }),
+    ]);
 
-    if (user === null) {
-      console.log("No existing user found. Creating new user document.");
+    if (googleUser) {
+      console.log("Google user found");
 
-      // Create a new user document with primaryUID and Google UID, archiving the anonymous UID
-      user = await User.findOneAndUpdate(
-        { 'firebaseUIDs.uid': primaryUID }, // Locate by the anonymous UID
-        {
-          $set: {
-            googleUID: googleUID || null,
-            email: email ? email.toLowerCase() : null,
-          },
-          $addToSet: {
-            firebaseUIDs: { 
-              uid: primaryUID,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              archived: true,     // Archive the anonymous UID on link
-              archivedAt: Date.now(),
-            }
-          }
-        },
-        { new: true, upsert: true } // Upsert ensures creation if no document exists
-      );
-
-      console.log(`New user created with archived primaryUID ${primaryUID} and linked Google UID ${googleUID}.`);
-      return res.status(200).json(user); // Return the new user
-
-    } else {
-      console.log("Existing user found. Archiving all previous anonymous UIDs and linking to Google account.");
-
-      // Archive all existing firebaseUIDs
-      user.firebaseUIDs.forEach(uidObj => {
-        uidObj.archived = true;
-        uidObj.archivedAt = Date.now();
-      });
-
-      // Add the current primaryUID if it's not already in firebaseUIDs
-      let existingUID = user.firebaseUIDs.find(uidObj => uidObj.uid === primaryUID);
-
-      if (!existingUID) {
-        // Add the new primaryUID as archived since it's linked to Google
-        user.firebaseUIDs.push({
-          uid: primaryUID,
-          createdAt: Date.now(),
-          archived: true,
-          archivedAt: Date.now(),
-          linkedTo: googleUID, // Link to the Google UID for reference
-        });
+      // If there's an anonymous user, delete it after merging
+      if (anonymousUser) {
+        console.log("Anonymous user found. Deleting after merging.");
+        await anonymousUser.deleteOne();
       }
 
-      // Set googleUID and email if they are not already set
-      user.googleUID = googleUID;
-      user.email = email ? email.toLowerCase() : user.email;
+      // Check if primaryUID already exists in googleUser's firebaseUIDs
+      const existingUID = googleUser.firebaseUIDs.find(uid => uid.uid === primaryUID);
 
-      // Save the changes
-      await user.save();
+      if (!existingUID) {
+        // Add new primaryUID entry if not already present
+        googleUser.firebaseUIDs.push({
+          uid: primaryUID,
+          createdAt: currentTime,
+          archived: true,
+          archivedAt: currentTime,
+          mergedAt: currentTime,
+        });
+        console.log("primaryUID added to googleUser's firebaseUIDs.");
+      } else if (!existingUID.archived) {
+        // Archive existing primaryUID if not already archived
+        existingUID.archived = true;
+        existingUID.archivedAt = currentTime;
+        console.log("Existing primaryUID archived.");
+      }
 
-      console.log(`Archived all anonymous UIDs and linked primaryUID ${primaryUID} to Google UID ${googleUID}.`);
-      return res.status(200).json(user); // Return the existing user
+      // Update timestamps
+      googleUser.updatedAt = currentTime;
+      googleUser.mergedAt = currentTime;
+
+      await googleUser.save();
+      console.log("Merged Google user:", googleUser);
+      return res.status(200).json(googleUser);
     }
+
+    // Case 2: No googleUID found, handle anonymous user with primaryUID
+    if (anonymousUser) {
+      console.log("Anonymous user found. Adding googleUID and updating details.");
+
+      // Archive all existing firebaseUIDs
+      anonymousUser.firebaseUIDs = anonymousUser.firebaseUIDs.map(uid => ({
+        ...uid,
+        archived: true,
+        archivedAt: currentTime,
+      }));
+
+      // Add Google-specific details to the anonymous user
+      Object.assign(anonymousUser, {
+        googleUID,
+        email: normalizedEmail,
+        updatedAt: currentTime,
+        mergedAt: currentTime,
+      });
+
+      await anonymousUser.save();
+      console.log("Anonymous user merged with Google account data:", anonymousUser);
+      return res.status(200).json(anonymousUser);
+    }
+
+    // If neither user was found
+    console.log("User not found for merging.");
+    return res.status(404).json({ error: "User not found for merging." });
 
   } catch (error) {
     console.error('Error merging UIDs:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+
 
 
 
