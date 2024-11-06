@@ -11,6 +11,7 @@ const userSchema = new Schema({
     archivedAt: { type: Date, default: null },
     mergedAt: { type: Date }
   }], unique: false }, // Array of linked Firebase UIDs
+  lastKnownIP: { type: String, sparse: true }, // Last known IP address
   googleUID: { type: String, index: true, sparse: true }, // Google OAuth UID
   email: { type: String, index: true, sparse: true }, // Email from Google OAuth
   displayName: { type: String, sparse: true }, // Display name from OAuth (Google)

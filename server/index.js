@@ -10,6 +10,7 @@ const result = dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Import routes
 const userRoutes = require('./routes/userRoutes');
+const preferencesRoutes = require('./routes/preferencesRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 
 if (result.error) {
@@ -31,8 +32,8 @@ app.get('/', (req, res) => res.send('Project 404 Server is Running'));
 
 // Mount the routes
 app.use('/api/users', userRoutes);
+app.use('/api/preferences', preferencesRoutes);
 app.use('/api/conversations', conversationRoutes);
-
 // Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
