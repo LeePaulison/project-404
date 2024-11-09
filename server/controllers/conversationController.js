@@ -7,13 +7,14 @@ exports.createConversation = async (req, res) => {
     const { userId, conversationTitle, messages } = req.body;
 
     // Check if a conversation with the same title already exists for this user
-    const existingConversation = await Conversation.findOne({
+    const userConversation = await Conversation.findOne({
       userId: userId,
       conversationTitle: conversationTitle
     });
 
-    if (existingConversation) {
-      return res.status(400).json({ error: 'Conversation with this title already exists for this user' });
+    if (userConversation) {
+      console.log('Conversation found:', userConversation, ' for user:', userId);
+      return res.status(200).json(userConversation);
     }
 
     // Log the number of existing conversations
@@ -48,7 +49,10 @@ exports.getConversations = async (req, res) => {
 // Get a specific conversation by ID
 exports.getConversation = async (req, res) => {
   try {
-    const conversation = await Conversation.findById(req.params.conversationId);
+    const conversation = await Conversation.findOne({
+      _id: req.params.conversationId,
+      userId: req.params.userId
+    });
     if (!conversation) return res.status(404).json({ error: 'Conversation not found' });
     res.json(conversation);
   } catch (error) {

@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Preferences = require('../models/Preferences');
+const Conversation = require('../models/Conversation');
 // Create a new user
 exports.createUser = async (req, res) => {
 
@@ -92,7 +93,13 @@ exports.createUser = async (req, res) => {
 // Get a user by ID
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId);
+    const user = await User.findById(req.params.userId)
+    .populate('preferences')
+    .populate({
+      path: 'conversations',
+      model: Conversation,
+    });
+    
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (error) {
